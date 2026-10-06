@@ -1,0 +1,6 @@
+uiautomator2>=3.2.0
+rapidfuzz>=3.5.0
+jieba>=0.42.1
+pywin32>=306
+edge-tts>=6.1.0
+
