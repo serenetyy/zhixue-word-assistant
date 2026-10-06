@@ -80,6 +80,7 @@ TTS_DEDUP_SECONDS = 6.0   # 同一个词多少秒内不重复朗读（防重复�
 AUTO_READING_FLOW = True   # 朗读页：自动点"朗读" → 电脑朗读 → 点"下一题"
 AUTO_FILL_ANSWER = True    # 拼写页：自动把匹配出的单词填进输入框并提交
 AUTO_CLICK_NEXT = True     # 朗读页读完后是否自动点"下一题"
+SPEAK_IN_SPELLING = False  # 拼写环节要不要电脑朗读（默认不读，看着中文直接填）
 
 # 实测到的控件 resource-id（比文字稳，脚本优先按它找；找不到自动退回按文字找）
 ID_RECORD = "iv_record"              # 录音按钮（单词跟读页，点它开始录音）

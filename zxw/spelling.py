@@ -7,7 +7,8 @@
   - 所以输入只能按坐标点键（坐标在 keyboard.py 里，实测值）
   - 提交按钮在右下角，文字是「确定」，提交后结果出来它会变成「下一题」
 
-流程：重新识别 → 电脑朗读 → 清空 → 逐字母敲 → 点「确定」→ 点「下一题」
+流程：重新识别 → 清空 → 逐字母敲 → 点「确定」→ 点「下一题」
+（拼写环节默认不朗读，看着中文直接填；想让它读就改 config.SPEAK_IN_SPELLING）
 """
 import time
 
@@ -18,9 +19,10 @@ from .util import fresh_word, progress_text, ts
 
 def do_spelling(d, word, speaker, items):
     word = fresh_word(d, items, word)           # 填之前重新识别一遍
-    print(f"[{ts()}] 拼写页: 朗读 {word} → 内置键盘敲入 → 确定 → 下一题")
-    speaker.speak(word)
-    speaker.wait()
+    print(f"[{ts()}] 拼写页: 识别到 {word} → 内置键盘敲入 → 确定 → 下一题")
+    if config.SPEAK_IN_SPELLING:
+        speaker.speak(word)
+        speaker.wait()
     if not config.AUTO_FILL_ANSWER:
         print("           （自动填答已关：config.AUTO_FILL_ANSWER=False，自己拼）")
         return
