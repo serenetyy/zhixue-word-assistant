@@ -12,6 +12,7 @@ import time
 import xml.etree.ElementTree as ET
 
 import config
+from . import keyboard as _keyboard
 
 _BOUNDS_RE = re.compile(r"\[(-?\d+),(-?\d+)\]\[(-?\d+),(-?\d+)\]")
 
@@ -292,7 +293,18 @@ def fill_answer(d, word):
       3) 聚焦节点 send_keys
       4) 按提示文字找输入区
     """
-    # 1) 内置键盘
+    # 1) 智学网自绘键盘（拼写页实测走这条）
+    try:
+        if _keyboard.has_keyboard(d):
+            _keyboard.clear_all(d)
+            time.sleep(0.3)
+            if _keyboard.type_word(d, word):
+                return True
+            print("[填答] 自绘键盘没敲完，继续试别的")
+    except Exception as e:
+        print(f"[填答] 自绘键盘方式出错: {e}")
+
+    # 2) 普通字母按键（系统软键盘之类）
     try:
         if has_screen_keyboard(d):
             if type_via_screen_keyboard(d, word):

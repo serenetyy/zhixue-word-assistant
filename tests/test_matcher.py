@@ -217,6 +217,49 @@ check("缺字母键 → 返回 False", not actions.type_via_screen_keyboard(kd2,
 check("键太少不算键盘", not actions.has_screen_keyboard(_KeyDev(["a", "b"])))
 
 print()
+print("== 7. 拼写页自绘键盘（ky_keyboard）坐标 ==")
+from zxw import keyboard as kb_mod
+
+
+class _KbEl:
+    def exists(self, timeout=0):
+        return True
+
+    @property
+    def info(self):
+        # 就是实测的键盘区域
+        return {"bounds": {"left": 0, "top": 1164, "right": 1080, "bottom": 1740}}
+
+
+class _KbDev:
+    def __init__(self):
+        self.clicks = []
+
+    def __call__(self, **sel):
+        return _KbEl()
+
+    def click(self, x, y):
+        self.clicks.append((x, y))
+
+
+kd3 = _KbDev()
+check("能认出 ky_keyboard", kb_mod.has_keyboard(kd3))
+kb_mod.tap_key(kd3, "q")
+check("q 键坐标 = (74, 1236)", kd3.clicks[-1] == (73, 1236), str(kd3.clicks[-1]))
+kb_mod.tap_key(kd3, "l")
+check("l 键坐标", kd3.clicks[-1] == (int(1080 * 0.8870), 1380), str(kd3.clicks[-1]))
+kb_mod.tap_key(kd3, "backspace")
+check("退格键坐标", kd3.clicks[-1] == (int(1080 * 0.9093), 1524), str(kd3.clicks[-1]))
+kb_mod.tap_key(kd3, "clear")
+check("清空键坐标 = (983, 1668)", kd3.clicks[-1] == (983, 1668), str(kd3.clicks[-1]))
+
+kd3.clicks.clear()
+kb_mod.type_word(kd3, "cat")
+check("type_word('cat') 依次点 c-a-t", kd3.clicks == [
+    (int(1080 * 0.4056), 1524), (int(1080 * 0.1157), 1380), (int(1080 * 0.4519), 1236),
+], str(kd3.clicks))
+
+print()
 if FAILED:
     print(f"有 {len(FAILED)} 项失败: {FAILED}")
     sys.exit(1)
