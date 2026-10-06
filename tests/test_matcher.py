@@ -172,6 +172,51 @@ r = actions.wait_for_text(fd3, ["点击重录"], timeout=0.5, interval=0.05)
 check("一直不出现 → 超时返回 None", r is None, str(r))
 
 print()
+print("== 6. 拼写页：内置键盘输入 ==")
+
+
+class _AbsentEl:
+    def exists(self, timeout=0):
+        return False
+
+
+class _KeyEl:
+    def __init__(self, dev, ch):
+        self.dev = dev
+        self.ch = ch
+
+    def exists(self, timeout=0):
+        return True
+
+    def click(self):
+        self.dev.clicks.append(self.ch)
+
+
+class _KeyDev:
+    """假设备：屏幕上只有 keys 里的字母键"""
+
+    def __init__(self, keys):
+        self.keys = set(keys)
+        self.clicks = []
+
+    def __call__(self, **sel):
+        t = sel.get("text") or sel.get("description")
+        if t and t in self.keys:
+            return _KeyEl(self, t)
+        return _AbsentEl()
+
+
+kd = _KeyDev(list("abcdefghijklmnopqrstuvwxyz"))
+check("能认出屏幕上的字母键盘", actions.has_screen_keyboard(kd))
+check("按顺序敲出 'cat'",
+      actions.type_via_screen_keyboard(kd, "cat") and kd.clicks == ["c", "a", "t"],
+      str(kd.clicks))
+
+kd2 = _KeyDev(list("ab"))
+check("缺字母键 → 返回 False", not actions.type_via_screen_keyboard(kd2, "cat"))
+check("键太少不算键盘", not actions.has_screen_keyboard(_KeyDev(["a", "b"])))
+
+print()
 if FAILED:
     print(f"有 {len(FAILED)} 项失败: {FAILED}")
     sys.exit(1)

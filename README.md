@@ -30,10 +30,13 @@ zhixuewang/
 │   ├── page.py          读屏文字（控件树）+ 状态栏噪音过滤
 │   ├── capture.py       抓单词列表 / 读 words.json
 │   ├── matcher.py       中文分词 + 模糊匹配（中文主、音标/拼写辅）
-│   ├── actions.py       点按钮 / 阶段判断 / 往输入框填答案
+│   ├── actions.py       点按钮 / 阶段判断 / 填答案（内置键盘/输入框）
+│   ├── reading.py       朗读（跟读）流程 —— 和拼写完全分开
+│   ├── spelling.py      拼写流程 —— 和朗读完全分开
+│   ├── util.py          两个流程共用的小工具
 │   ├── tts.py           电脑朗读（Edge 神经语音 → SAPI → PowerShell 自动降级）
 │   ├── watcher.py       弹窗处理
-│   └── monitor.py       主循环：盯屏 → 认词 → 按阶段自动作答
+│   └── monitor.py       主循环：盯屏 → 认词 → 分发给两个流程
 ├── tests/test_matcher.py  不连设备也能跑的自测
 └── data/                抓取结果（words.json）、probe 的控件树、原始屏幕记录
 ```
@@ -60,8 +63,12 @@ REM ① 先确认能读到屏幕（可选，排障用）
 REM ② 手动把模拟器停在【单词列表】页 → 抓取
 .venv\Scripts\python main.py capture
 
-REM ③ 开始练习，进入练习页
+REM ③ 开始练习，进入练习页（朗读、拼写都自动做）
 .venv\Scripts\python main.py run
+
+REM    也可以分开跑：
+REM    .venv\Scripts\python main.py run --mode reading    只自动做跟读题
+REM    .venv\Scripts\python main.py run --mode spelling   只自动做拼写题
 ```
 
 `run` 运行时的按键（自动流程卡住时用）：
@@ -80,7 +87,7 @@ REM ③ 开始练习，进入练习页
 |---|---|
 | `python main.py probe` | 打印当前屏幕读到的文字（已过滤噪音）；`--raw` 连噪音一起看 |
 | `python main.py capture` | 自动下滑抓整份单词表 → `data/words.json` |
-| `python main.py run` | 监听练习页，识别 + 朗读 + 自动作答 |
+| `python main.py run` | 监听练习页，朗读+拼写都自动；加 `--mode reading` / `--mode spelling` 可只跑其中一个 |
 | `python main.py match "贫瘠的"` | 离线测匹配：看会匹配到哪个词、得分多少 |
 | `python main.py tap 朗读` | 在手机上点一个文字按钮（调试按钮文字用） |
 | `python main.py type apple` | 往当前页面的输入框填字（调试填答用） |
@@ -125,8 +132,9 @@ REM ③ 开始练习，进入练习页
 也可以用 `python main.py tap 文字` 直接测试能不能点到。
 
 **填不进输入框 / 找不到输入框**
-在拼写页跑 `python main.py type apple`，会打印页面上的输入框信息和尝试结果。
-把 `python main.py probe --raw` 的输出发我看，我来加定位方式。
+拼写页优先用"在屏幕上找字母键盘、逐个字母点"的方式打字（实测智学网拼写题大概率要
+走这条），其次才试 set_text / send_keys。在拼写页跑 `python main.py type apple` 看
+尝试过程和结果；对不上就把 `python main.py probe --raw` 的输出发我看，我来校准。
 
 **状态栏文字干扰**
 已经按包名（`com.android.systemui`）过滤掉了，还有漏的就把特征加进 `NOISE_REGEXES`。

@@ -71,7 +71,7 @@ def cmd_run(args):
     print(f"单词表: {len(items)} 个词  ({config.WORDS_FILE})")
     print("示例: " + "；".join(it["word"] for it in items[:5]))
     d = device.connect(args.serial)
-    monitor.run(d, items)
+    monitor.run(d, items, mode=args.mode)
 
 
 def cmd_match(args):
@@ -166,6 +166,8 @@ def main():
 
     sp = sub.add_parser("run", help="监听练习页，识别 + 朗读 + 作答")
     sp.add_argument("--serial", default=None)
+    sp.add_argument("--mode", choices=("all", "reading", "spelling"), default="all",
+                    help="all=朗读+拼写都跑（默认）；reading=只跑跟读；spelling=只跑拼写")
     sp.set_defaults(func=cmd_run)
 
     sp = sub.add_parser("match", help="离线测试模糊匹配")

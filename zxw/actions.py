@@ -231,37 +231,104 @@ def _find_edittext(d):
     return None
 
 
+def _find_key(d, texts):
+    """在屏幕上找一个按键（精确文字 或 精确描述）"""
+    for t in texts:
+        for sel in (dict(text=t), dict(description=t)):
+            try:
+                el = d(**sel)
+                if el.exists(timeout=0.15):
+                    return el
+            except Exception:
+                continue
+    return None
+
+
+def has_screen_keyboard(d, probe="abcd"):
+    """屏幕上像不像有个字母键盘（探几个字母键，凑够 3 个就算有）"""
+    found = 0
+    for ch in probe:
+        if _find_key(d, [ch, ch.upper()]) is not None:
+            found += 1
+    return found >= 3
+
+
+def type_via_screen_keyboard(d, word):
+    """用屏幕上的字母键把单词敲进去（App 内置键盘 / 系统软键盘都适用）。
+
+    每个字符都找到并点了才返回 True；中途缺键返回 False（可能敲了一半，
+    上层会用 set_text 之类覆盖式重来）。
+    """
+    for ch in word.lower():
+        if ch == " ":
+            el = _find_key(d, ["空格", "space", "Space"])
+        elif ch.isalpha():
+            el = _find_key(d, [ch, ch.upper()])
+        else:
+            print(f"[填答] 单词里有特殊字符 {ch!r}，先跳过（可能要手动处理）")
+            continue
+        if el is None:
+            print(f"[填答] 屏幕上找不到字母键 {ch!r}")
+            return False
+        el.click()
+        time.sleep(config.KEY_CLICK_WAIT)
+    return True
+
+
+def _read_text(el):
+    """读元素里的文字；读不到返回 None"""
+    try:
+        return el.get_text() or ""
+    except Exception:
+        return None
+
+
 def fill_answer(d, word):
     """把答案填进输入框。成功返回 True。
 
-    多级兜底：
-      1) 直接 set_text（不先点击 → 不弹软键盘）
-      2) 点一下再 set_text
-      3) 谁聚焦了就 send_keys
+    策略顺序（实测智学网拼写题很可能要走第 1 条）：
+      1) 屏幕上有字母键盘 → 逐个字母点上去
+      2) 标准输入框 → set_text（读回来验证）→ 点一下再 set_text
+      3) 聚焦节点 send_keys
       4) 按提示文字找输入区
     """
+    # 1) 内置键盘
+    try:
+        if has_screen_keyboard(d):
+            if type_via_screen_keyboard(d, word):
+                el = _find_edittext(d)
+                got = _read_text(el) if el is not None else None
+                if got is None or got.strip().lower() == word.lower():
+                    return True
+                print(f"[填答] 键盘敲完了但读回来是 {got!r}，继续试别的")
+            else:
+                print("[填答] 内置键盘没敲完，改用直接写入试试")
+    except Exception as e:
+        print(f"[填答] 内置键盘方式出错: {e}")
+
+    # 2) 标准输入框
     el = _find_edittext(d)
     if el is not None:
         try:
             el.set_text(word)
             time.sleep(0.2)
-            got = ""
-            try:
-                got = el.get_text() or ""
-            except Exception:
-                pass
-            if not got or got.strip().lower() == word.lower():
-                return True
+            got = _read_text(el)
+            if got is not None and got.strip().lower() == word.lower():
+                return True          # 读回来确认写进去了才算成功
         except Exception as e:
             print(f"[填答] 直接写入失败: {e}")
         try:
             el.click()
             time.sleep(0.4)
             el.set_text(word)
-            return True
+            time.sleep(0.2)
+            got = _read_text(el)
+            if got is None or got.strip().lower() == word.lower():
+                return True
         except Exception as e:
             print(f"[填答] 点击后再写也失败: {e}")
 
+    # 3) 聚焦节点直接发按键
     try:
         if d(focused=True).exists(timeout=0.3):
             d.send_keys(word, clear=True)
@@ -269,6 +336,7 @@ def fill_answer(d, word):
     except Exception as e:
         print(f"[填答] send_keys 失败: {e}")
 
+    # 4) 按提示文字找输入区
     for hint in config.INPUT_HINTS:
         try:
             el2 = d(textContains=hint)
