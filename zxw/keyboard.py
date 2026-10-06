@@ -82,18 +82,21 @@ def tap_key(d, label):
 def type_word(d, word):
     """按字母逐个点，把单词敲进去。有打不出的字符返回 False。
 
-    注：只处理英文字母；空格/连字符先跳过（遇到会提示）。
+    词组里的空格直接忽略（"dig up" 就敲 digup，实测这样没问题）。
     """
     rect = _keyboard_rect(d)
     if rect is None:
         return False
+    said_space = False
     for ch in str(word).lower():
         if ch.isalpha() and ch in _KEYS:
             if not _tap(d, rect, ch):
                 print(f"[键盘] 打不出字符 {ch!r}")
                 return False
         elif ch == " ":
-            print("[键盘] 这个单词带空格，键盘上没有空格键，先跳过")
+            if not said_space:
+                print("[键盘] （词组，空格忽略，直接拼字母）")
+                said_space = True
         else:
             print(f"[键盘] 忽略特殊字符 {ch!r}")
     return True

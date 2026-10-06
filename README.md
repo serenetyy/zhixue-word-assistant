@@ -138,7 +138,7 @@ REM    .venv\Scripts\python main.py run --mode spelling   只自动做拼写题
 拼写页的键盘是画出来的（ky_keyboard），按键坐标是实测值、存在 `zxw/keyboard.py` 里，
 脚本按坐标点键。如果在你的模拟器上敲错位了（分辨率不同），把键盘区域截图发我重新标定；
 临时调试用 `python main.py type 单词` 看敲入过程。
-遇到带空格的词组（比如 dig up）键盘上没有空格键，脚本会提示，需要手动补。
+带空格的词组（比如 dig up）直接忽略空格拼字母（敲成 digup），实测没问题。
 
 **状态栏文字干扰**
 已经按包名（`com.android.systemui`）过滤掉了，还有漏的就把特征加进 `NOISE_REGEXES`。
