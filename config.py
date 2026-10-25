@@ -17,11 +17,11 @@ ADB_PATH = r"D:\AndroidSDK\platform-tools\adb.exe"
 
 # 模拟器预设（设置页可选）：运行时会先连它的默认端口，连不上再自动探测 adb 设备
 # auto / ldplayer(雷电 5555) / mumu(MuMu 7555) / bluestacks(蓝叠 5555) / custom
-EMULATOR = "auto"
+EMULATOR = 'auto'
 
 # 自定义设备串号（adb devices 里显示的那一列，如 127.0.0.1:7555）。
 # 填了就优先用它；EMULATOR 选 custom 时也是用这个。留空 = 自动。
-DEVICE_SERIAL = ""
+DEVICE_SERIAL = ''
 
 # ---------------- 屏幕监听 ----------------
 POLL_INTERVAL = 2.0          # 每隔几秒看一眼屏幕
@@ -73,9 +73,9 @@ TTS_DEDUP_SECONDS = 6.0   # 同一个词多少秒内不重复朗读（防重复�
 # Piper 本地神经语音（离线、稳定、免费；每个模型约 60-75MB，放 data/piper_voices/）
 # 下载更多声音：python -m piper.download_voices en_US-lessac-medium --download-dir data/piper_voices
 # 也可以直接用设置页（python main.py ui）选
-TTS_PIPER_MODEL = "data/piper_voices/en_US-amy-medium.onnx"
-TTS_PIPER_LENGTH = 1.0    # 语速：1.0=原速，>1 更慢，<1 更快
-TTS_PIPER_VOLUME = 1.0    # 音量倍数：1.0=原声；想更容易被模拟器麦克风采到可调 1.3~1.8
+TTS_PIPER_MODEL = 'data/piper_voices/en_US-amy-medium.onnx'
+TTS_PIPER_LENGTH = 0.9    # 语速：1.0=原速，>1 更慢，<1 更快
+TTS_PIPER_VOLUME = 1.2    # 音量倍数：1.0=原声；想更容易被模拟器麦克风采到可调 1.3~1.8
 
 # ---------------- 朗读发音 ----------------
 # 朗读时的缩写展开（只影响发音，不影响拼写/匹配）。
@@ -93,7 +93,7 @@ SPEECH_EXPAND = {
 # ---------------- 自动作答流程 ----------------
 AUTO_READING_FLOW = True   # 朗读页：自动点"朗读" → 电脑朗读 → 点"下一题"
 AUTO_FILL_ANSWER = True    # 拼写页：自动把匹配出的单词填进输入框并提交
-AUTO_CLICK_NEXT = True     # 朗读页读完后是否自动点"下一题"
+AUTO_CLICK_NEXT = False     # 朗读页读完后是否自动点"下一题"
 
 # 实测到的控件 resource-id（比文字稳，脚本优先按它找；找不到自动退回按文字找）
 ID_RECORD = "iv_record"              # 录音按钮（单词跟读页，点它开始录音）
@@ -120,11 +120,11 @@ INPUT_HINTS = ["请输入", "输入单词", "点击输入", "填写", "作答"]
 
 # 各步骤之间的等待（秒），模拟器卡就调大
 READ_AFTER_CLICK_WAIT = 0.5    # 点了"点击录音"后等多久电脑再出声（先让它进录音状态）
-READ_AFTER_SPEAK_WAIT = 1.0    # 读完到"点波纹结束录音"之间
+READ_AFTER_SPEAK_WAIT = 0.8    # 读完到"点波纹结束录音"之间
 AFTER_FILL_WAIT = 0.4          # 填完答案到点"提交"
 AFTER_SUBMIT_WAIT = 0.8        # 提交完到点"下一题"
 AFTER_STOP_WAIT = 0.5          # 点完波纹后歇一下再等评分
-NEXT_BUTTON_WAIT = 25.0        # 等评分完成（"点击重录"出现），最多等几秒
+NEXT_BUTTON_WAIT = 20.0        # 等评分完成（"点击重录"出现），最多等几秒
 KEY_CLICK_WAIT = 0.15          # 拼写页用内置键盘打字时，每个字母点击的间隔
 
 # 注意：录音约 10 秒会自动结束（静音会被丢弃）。
