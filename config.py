@@ -15,8 +15,12 @@ WORDS_FILE = DATA_DIR / "words.json"          # 单词表（抓到后可以用�
 # adb 的完整路径。你电脑上没把 adb 加进 PATH，所以这里直接指向 AndroidSDK 自带的。
 ADB_PATH = r"D:\AndroidSDK\platform-tools\adb.exe"
 
-# 设备串号（adb devices 里显示的那一列）。留空 = 自动选第一台；
-# 一台都没有时会自动尝试连接常见模拟器端口（MuMu 7555 / 雷电 5555 / 夜神 62001 等）。
+# 模拟器预设（设置页可选）：运行时会先连它的默认端口，连不上再自动探测 adb 设备
+# auto / ldplayer(雷电 5555) / mumu(MuMu 7555) / bluestacks(蓝叠 5555) / custom
+EMULATOR = "auto"
+
+# 自定义设备串号（adb devices 里显示的那一列，如 127.0.0.1:7555）。
+# 填了就优先用它；EMULATOR 选 custom 时也是用这个。留空 = 自动。
 DEVICE_SERIAL = ""
 
 # ---------------- 屏幕监听 ----------------

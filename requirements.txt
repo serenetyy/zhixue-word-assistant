@@ -1,7 +1,4 @@
 uiautomator2>=3.2.0
 rapidfuzz>=3.5.0
 jieba>=0.42.1
-pywin32>=306
 piper-tts>=1.8.0
-edge-tts>=6.1.0
-

@@ -16,6 +16,18 @@ COMMON_PORTS = [
     21503,          # MuMu 旧版
 ]
 
+# 设置页可选的模拟器预设 → 默认 adb 端口
+EMULATOR_PORTS = {
+    "ldplayer": 5555,      # 雷电模拟器
+    "mumu": 7555,          # MuMu 模拟器
+    "bluestacks": 5555,    # 蓝叠模拟器
+}
+EMULATOR_NAMES = {
+    "ldplayer": "雷电模拟器",
+    "mumu": "MuMu 模拟器",
+    "bluestacks": "蓝叠模拟器",
+}
+
 _ADB = None
 
 
@@ -76,6 +88,23 @@ def pick_serial(serial=None):
     serial = (serial or config.DEVICE_SERIAL or "").strip()
     if serial:
         return serial
+
+    # 设置页选过模拟器预设 → 先连它的默认端口
+    emu = (getattr(config, "EMULATOR", "auto") or "auto").strip().lower()
+    port = EMULATOR_PORTS.get(emu)
+    if port:
+        addr = f"127.0.0.1:{port}"
+        try:
+            r = adb(["connect", addr], timeout=10)
+        except Exception:
+            r = None
+        if r is not None:
+            out = ((r.stdout or "") + (r.stderr or "")).lower()
+            if "cannot" not in out and ("connected to" in out or "already connected" in out):
+                print(f"[连接] 已连接{EMULATOR_NAMES.get(emu, emu)}默认端口 {addr}")
+                time.sleep(0.8)
+                return addr
+        print(f"[连接] 预设的 {addr} 连不上，改为自动探测 adb 设备")
 
     devs = adb_devices()
     ready = [s for s, st in devs if st == "device"]

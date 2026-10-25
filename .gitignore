@@ -5,5 +5,15 @@
 __pycache__/
 *.pyc
 
-# 运行数据（抓取的单词表、probe 的控件树、原始屏幕记录 —— 都可再生成）
-data/
+# 下载中的临时文件
+*.part
+
+# 本地运行数据（抓取结果、probe 记录、临时截图等）
+data/*
+!data/piper_voices/
+
+# piper_voices 里只把内置的默认模型纳入仓库；
+# 其余模型按需用 install.bat / tools/fetch_models.py 下载（不强制全量）
+data/piper_voices/*
+!data/piper_voices/en_US-amy-medium.onnx
+!data/piper_voices/en_US-amy-medium.onnx.json

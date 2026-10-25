@@ -58,6 +58,19 @@
 </header>
 <main>
   <section class="card">
+    <h2>模拟器连接</h2>
+    <div class="row">
+      <label class="k">模拟器</label>
+      <select id="EMULATOR"></select>
+      <span class="hint">选好后运行时先连它的默认端口，连不上会自动探测 adb 设备</span>
+    </div>
+    <div class="row">
+      <label class="k">自定义串号</label>
+      <input type="text" id="DEVICE_SERIAL" placeholder="如 127.0.0.1:7555（只在选『自定义』时生效）" style="flex:1 1 260px">
+    </div>
+  </section>
+
+  <section class="card">
     <h2>朗读语音（Piper 本地神经语音）</h2>
     <div class="row">
       <label class="k">声音模型</label>
@@ -192,6 +205,16 @@ async function load() {
   cfg = await api("/api/config");
   const voices = await api("/api/voices");
 
+  fillSelect($("EMULATOR"), [
+    {value:"auto", label:"自动检测"},
+    {value:"ldplayer", label:"雷电模拟器（默认端口 5555）"},
+    {value:"mumu", label:"MuMu 模拟器（默认端口 7555）"},
+    {value:"bluestacks", label:"蓝叠模拟器（默认端口 5555）"},
+    {value:"custom", label:"自定义串号"},
+  ], cfg.EMULATOR);
+  setVal("DEVICE_SERIAL", cfg.DEVICE_SERIAL || "");
+  syncSerialInput();
+
   fillSelect($("TTS_PIPER_MODEL"),
     (voices.piper || []).map(n => ({value:"data/piper_voices/" + n, label:n})),
     cfg.TTS_PIPER_MODEL);
@@ -210,8 +233,16 @@ async function load() {
   setRange("MATCH_MIN_MARGIN", cfg.MATCH_MIN_MARGIN, f2);
 }
 
+function syncSerialInput() {
+  const isCustom = $("EMULATOR").value === "custom";
+  $("DEVICE_SERIAL").disabled = !isCustom;
+  $("DEVICE_SERIAL").style.opacity = isCustom ? "1" : ".55";
+}
+
 function collect() {
   return {
+    EMULATOR: $("EMULATOR").value,
+    DEVICE_SERIAL: $("DEVICE_SERIAL").value.trim(),
     TTS_PIPER_MODEL: $("TTS_PIPER_MODEL").value,
     TTS_PIPER_LENGTH: Number($("TTS_PIPER_LENGTH").value),
     TTS_PIPER_VOLUME: Number($("TTS_PIPER_VOLUME").value),
@@ -281,6 +312,7 @@ async function preview() {
 
 $("saveBtn").addEventListener("click", save);
 $("previewBtn").addEventListener("click", preview);
+$("EMULATOR").addEventListener("change", syncSerialInput);
 $("previewText").addEventListener("keydown", (e) => { if (e.key === "Enter") preview(); });
 bindRange("TTS_PIPER_LENGTH", f2);
 bindRange("TTS_PIPER_VOLUME", f2);
