@@ -379,5 +379,5 @@ def submit_and_next(d, tries=3):
             print(f"[流程] 已提交并点了『{got_next}』")
             return True
         time.sleep(0.8)
-    print("[流程] 提交了但一直没找到『下一题』（可能自动跳了；不行按 n 手动点）")
+    print("[流程] 提交后未找到「下一题」（可能已自动跳转；如未跳转请手动点击「下一题」）")
     return True

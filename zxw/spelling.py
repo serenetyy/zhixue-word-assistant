@@ -27,12 +27,12 @@ def do_spelling(d, word, items):
     if keyboard.clear_all(d):
         time.sleep(0.3)
     else:
-        print("           [注意] 未找到拼写键盘（ky_keyboard），可按 f 重试或手动输入。")
+        print("           [注意] 未找到拼写键盘（ky_keyboard），请手动输入。")
         return
 
     # 2) 逐字母输入
     if not keyboard.type_word(d, word):
-        print("           [注意] 有字符未能输入，请手动补充或按 f 重试。")
+        print("           [注意] 有字符未能输入，请手动补充。")
         return
     print(f"           已输入 {word}，正在提交。")
     time.sleep(config.AFTER_FILL_WAIT)
@@ -50,4 +50,4 @@ def do_spelling(d, word, items):
             got = actions.find_and_click(d, config.NEXT_BUTTONS)
             if got:
                 print(f"           再次点击「{got}」")
-    print("           未能确认翻页，请查看屏幕；可按 n 手动点击「下一题」。")
+    print("           未能确认翻页，请查看屏幕，并手动点击「下一题」。")

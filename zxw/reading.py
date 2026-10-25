@@ -84,7 +84,7 @@ def do_reading(d, word, speaker, items):
     for _ in range(3):                       # 点"下一题"，没翻页就再试
         got2 = actions.click_control(d, [config.ID_NEXT], config.NEXT_BUTTONS)
         if not got2:
-            print("           没找到『下一题』，按 n 手动点")
+            print("           未找到「下一题」，请手动点击。")
             return
         time.sleep(1.3)
         after = progress_text(d)
@@ -92,4 +92,4 @@ def do_reading(d, word, speaker, items):
             print(f"           已翻到 {after}"
                   + ("" if scored else "（这题没录上，想补录可以点『上一题』回去）"))
             return
-    print("           点了『下一题』但页面没翻，按 n 再试")
+    print("           点击「下一题」后页面未翻页，请手动点击。")

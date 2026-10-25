@@ -22,9 +22,9 @@ from .util import speech_text, ts
 MODE_NAMES = {"reading": "朗读", "spelling": "拼写"}
 
 MODE_HELP = {
-    "reading": ("快捷键：r=重读  1/2/3=试听候选  p=点「朗读」  n=点「下一题」"
-                "  f=重填当前题  h=帮助  q=退出"),
-    "spelling": "快捷键：s=点「提交」  n=点「下一题」  f=重填当前题  h=帮助  q=退出",
+    "reading": ("快捷键：r=重新朗读本题（录音 → 朗读 → 结束录音）"
+                "  1/2/3=试听候选  s=点「提交」  h=帮助  q=退出"),
+    "spelling": "快捷键：s=点「提交」  h=帮助  q=退出",
 }
 
 
@@ -54,7 +54,7 @@ class Keyboard:
         return cmds
 
 
-def _handle_keys(kb, d, speaker, state, ctl, mode):
+def _handle_keys(kb, d, speaker, state, ctl, mode, items):
     """快捷键。state["result"] 为当前题目的匹配结果；ctl 管理退出/暂停选择。"""
     for cmd in kb.drain():
         if cmd == "q":
@@ -79,16 +79,16 @@ def _handle_keys(kb, d, speaker, state, ctl, mode):
             continue
 
         # 朗读模块专属快捷键
-        if cmd in ("r", "1", "2", "3", "p") and mode != "reading":
+        if cmd in ("r", "1", "2", "3") and mode != "reading":
             print("           （当前为拼写模块，无此操作）")
             continue
 
         result = state.get("result") or []
-        if cmd == "r" and result:
-            w = result[0]["item"].get("word")
+        if cmd == "r":
+            w = result[0]["item"].get("word") if result else ""
             if w:
-                speaker.speak(speech_text(w), force=True)
-                print(f"[{ts()}] 重读 {w}")
+                print(f"[{ts()}] 重新朗读本题：{w}")
+                reading.do_reading(d, w, speaker, items)
         elif cmd in ("1", "2", "3") and result:
             i = int(cmd) - 1
             if i < len(result):
@@ -96,24 +96,9 @@ def _handle_keys(kb, d, speaker, state, ctl, mode):
                 if w:
                     speaker.speak(speech_text(w), force=True)
                     print(f"[{ts()}] 试听 {w}")
-        elif cmd == "p":
-            got = actions.find_and_click(d, config.READ_BUTTONS)
-            print(f"[{ts()}] 点击「朗读」：{got or '未找到按钮'}")
         elif cmd == "s":
             got = actions.find_and_click(d, config.SUBMIT_BUTTONS)
             print(f"[{ts()}] 点击「提交」：{got or '未找到按钮'}")
-        elif cmd == "n":
-            got = actions.find_and_click(d, config.NEXT_BUTTONS)
-            print(f"[{ts()}] 点击「下一题」：{got or '未找到按钮'}")
-        elif cmd == "f" and result:
-            w = result[0]["item"].get("word")
-            if w:
-                print(f"[{ts()}] 重新填充 {w}")
-                if actions.fill_answer(d, w):
-                    time.sleep(config.AFTER_FILL_WAIT)
-                    actions.submit_and_next(d)
-                else:
-                    print("           未找到输入框或键盘。")
 
 
 def _progress_numbers(texts):
@@ -202,7 +187,7 @@ def run(d, items, mode="reading", auto_yes=False):
         while True:
             if ctl["paused"]:
                 if kb:
-                    _handle_keys(kb, d, speaker, state, ctl, mode)
+                    _handle_keys(kb, d, speaker, state, ctl, mode, items)
                 time.sleep(config.POLL_INTERVAL)
                 continue
 
@@ -270,7 +255,7 @@ def run(d, items, mode="reading", auto_yes=False):
                             break
 
             if kb:
-                _handle_keys(kb, d, speaker, state, ctl, mode)
+                _handle_keys(kb, d, speaker, state, ctl, mode, items)
             time.sleep(config.POLL_INTERVAL)
     except KeyboardInterrupt:
         pass
