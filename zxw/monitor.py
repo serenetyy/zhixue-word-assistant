@@ -85,10 +85,11 @@ def _handle_keys(kb, d, speaker, state, ctl, mode, items):
 
         result = state.get("result") or []
         if cmd == "r":
-            w = result[0]["item"].get("word") if result else ""
-            if w:
-                print(f"[{ts()}] 重新朗读本题：{w}")
-                reading.do_reading(d, w, speaker, items)
+            if result:
+                print(f"[{ts()}] 重新执行朗读流程（以当前屏幕识别结果为准）。")
+                reading.do_reading(d, result[0]["item"].get("word", ""), speaker, items)
+            else:
+                print("           当前未识别到单词，无法重新朗读。")
         elif cmd in ("1", "2", "3") and result:
             i = int(cmd) - 1
             if i < len(result):
