@@ -72,8 +72,8 @@ def interactive():
     mode = pick_mode()
     while True:
         run_main(["run", "--mode", mode])
-        print("\n模块已结束（上面是本次日志）。")
-        ans = ask("下一步：1=继续跑这个模块  2=切换到另一个模块  3=返回菜单  0=退出 ：")
+        print("\n本模块运行已结束（上方为本次日志）。")
+        ans = ask("请选择下一步：1=重新运行本模块  2=切换到另一模块  3=返回主菜单  0=退出 ：")
         if ans == "0":
             return False
         if ans == "3":
@@ -81,7 +81,7 @@ def interactive():
         if ans == "2":
             mode = "spelling" if mode == "reading" else "reading"
             print(f"已切换到{MODE_NAMES[mode]}模块。")
-        # 其他输入 = 继续当前模块
+        # 其他输入 = 重新运行当前模块
 
 
 def autoflow():
@@ -133,23 +133,24 @@ def main():
         print("============================================")
         print("  智学网单词助手")
         print("============================================")
-        print("  [1] 交互模式     跑一个模块，结束后询问下一步（Ctrl+C 可随时退出）")
-        print("  [2] 自动流转     模块跑完后自动切换另一个模块")
-        print("  [3] 抓取单词表   模拟器停在单词列表页，抓取到 data\\words.json")
+        print("  [1] 抓取单词表   模拟器停在单词列表页，抓取到 data\\words.json")
+        print("  [2] 交互模式     运行一个模块，完成后询问下一步（Ctrl+C 可随时退出）")
+        print("  [3] 自动流转     模块完成后自动切换到另一模块")
         print("  [4] 网页面板     打开本地设置页（新窗口）")
-        print("  [5] 自定义参数   打印命令说明，手动输入参数运行 main.py")
+        print("  [5] 自定义参数   显示命令说明，手动输入参数运行 main.py")
         print("  [0] 退出")
+        print("提示：设置页修改的参数，在重新选择模块运行时生效（每次运行均为新进程）。")
         print("============================================")
         ans = ask("请选择 [0-5]: ")
         if ans == "0":
             break
         if ans == "1":
+            capture_words()
+        elif ans == "2":
             if interactive() is False:
                 break
-        elif ans == "2":
-            autoflow()
         elif ans == "3":
-            capture_words()
+            autoflow()
         elif ans == "4":
             ui_panel()
         elif ans == "5":
