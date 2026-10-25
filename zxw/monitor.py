@@ -22,9 +22,8 @@ from .util import speech_text, ts
 MODE_NAMES = {"reading": "朗读", "spelling": "拼写"}
 
 MODE_HELP = {
-    "reading": ("快捷键：r=重新朗读本题（录音 → 朗读 → 结束录音）"
-                "  1/2/3=试听候选  s=点「提交」  h=帮助  q=退出"),
-    "spelling": "快捷键：s=点「提交」  h=帮助  q=退出",
+    "reading": "快捷键：r=重新朗读本题（录音 → 朗读 → 结束录音）  h=帮助  q=退出",
+    "spelling": "快捷键：h=帮助  q=退出",
 }
 
 
@@ -79,7 +78,7 @@ def _handle_keys(kb, d, speaker, state, ctl, mode, items):
             continue
 
         # 朗读模块专属快捷键
-        if cmd in ("r", "1", "2", "3") and mode != "reading":
+        if cmd == "r" and mode != "reading":
             print("           （当前为拼写模块，无此操作）")
             continue
 
@@ -90,16 +89,6 @@ def _handle_keys(kb, d, speaker, state, ctl, mode, items):
                 reading.do_reading(d, result[0]["item"].get("word", ""), speaker, items)
             else:
                 print("           当前未识别到单词，无法重新朗读。")
-        elif cmd in ("1", "2", "3") and result:
-            i = int(cmd) - 1
-            if i < len(result):
-                w = result[i]["item"].get("word")
-                if w:
-                    speaker.speak(speech_text(w), force=True)
-                    print(f"[{ts()}] 试听 {w}")
-        elif cmd == "s":
-            got = actions.find_and_click(d, config.SUBMIT_BUTTONS)
-            print(f"[{ts()}] 点击「提交」：{got or '未找到按钮'}")
 
 
 def _progress_numbers(texts):
