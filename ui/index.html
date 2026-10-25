@@ -54,7 +54,8 @@
 <body>
 <header>
   <h1>智学网单词助手 · 设置</h1>
-  <p>保存会写回 <code>config.py</code>；<b>语音试读立即生效</b>，其他改动需重启 <code>python main.py run</code>。</p>
+  <p>保存会写回 <code>config.py</code>；<b>语音试读立即生效</b>。其他改动在<b>下次运行模块时</b>生效
+     —— 回到启动菜单重新选择模块即可，菜单每次运行都会重新加载配置。</p>
 </header>
 <main>
   <section class="card">
@@ -274,7 +275,7 @@ async function save() {
       body: JSON.stringify({changes: collect()}),
     });
     cfg = r.config || cfg;
-    status("已保存（重启 run 后生效）", "ok");
+    status("已保存（重新运行模块后生效）", "ok");
   } catch (e) {
     status("保存失败：" + e.message, "err");
   } finally {
