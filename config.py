@@ -60,7 +60,7 @@ MATCH_MIN_MARGIN = 0.06   # 第一名比第二名至少高多少，否则提示"
 STOPWORDS = ["的", "了", "地", "得", "使", "让", "某人", "某物", "通常", "常", "等"]
 
 # ---------------- 朗读（TTS） ----------------
-TTS_ENGINE = "auto"       # auto / piper / sapi / edge / powershell
+TTS_ENGINE = 'auto'       # auto / piper / sapi / edge / powershell
                           # auto = Piper(本地神经语音) → SAPI(Zira) → PowerShell
                           #      Edge 在线语音已被微软停用/限流（403），需要时改成 "edge" 试试
 TTS_RATE = 150            # 语速（单词/分钟），越小越慢（对 SAPI 生效）
@@ -81,6 +81,19 @@ TTS_REPEAT_GAP = 0.9      # 两遍之间隔几秒（只有读多遍时才用得�
 READ_RECORD_BUDGET = 8.0  # 录音窗口里留给朗读的秒数（录音总长约10秒，留点余量）
 TTS_DEDUP_SECONDS = 6.0   # 同一个词多少秒内不重复朗读（防重复；自动流程里不受此限制）
 
+# ---------------- 朗读发音 ----------------
+# 朗读时的缩写展开（只影响发音，不影响拼写/匹配）。
+# 词表里有 "set sth aside" 这种写法，朗读要读成 "set something aside"，
+# 但拼写页还是敲 sth。
+SPEECH_EXPAND = {
+    "sth": "something",
+    "sb": "somebody",
+    "esp": "especially",
+    "etc": "etcetera",
+    "e.g.": "for example",
+    "i.e.": "that is",
+}
+
 # ---------------- 自动作答流程 ----------------
 AUTO_READING_FLOW = True   # 朗读页：自动点"朗读" → 电脑朗读 → 点"下一题"
 AUTO_FILL_ANSWER = True    # 拼写页：自动把匹配出的单词填进输入框并提交
@@ -98,6 +111,9 @@ RECORD_DONE_TEXTS = ["点击重录"]
 RECORD_FRESH_TEXTS = ["点击录音"]
 # 录音被丢弃时自动重录几遍（0=不重录，直接跳过）
 READ_RETRY_TIMES = 1
+
+# 做题范围（设置页可改；run 不带 --mode 时用这个）
+RUN_MODE = "all"           # all=朗读+拼写 / reading=只跑朗读 / spelling=只跑拼写
 
 # 各阶段按钮的文字（对不上就往这里加，脚本按顺序找第一个存在的）
 # "点击录音" 是实测到的朗读页按钮文字；点不到时脚本会去找它旁边的图标点

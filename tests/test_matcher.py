@@ -260,6 +260,44 @@ check("type_word('cat') 依次点 c-a-t", kd3.clicks == [
 ], str(kd3.clicks))
 
 print()
+print("== 8. 朗读缩写展开（只影响发音，不影响拼写）==")
+from zxw import util as util_mod
+
+check("sth → something", util_mod.speech_text("sth") == "something")
+check("词组里也能换（set sth aside）",
+      util_mod.speech_text("set sth aside") == "set something aside")
+check("大小写不敏感", util_mod.speech_text("Sth") == "something")
+check("相似词不误伤（sthg 不变）", util_mod.speech_text("sthg") == "sthg")
+check("sb's → somebody's", util_mod.speech_text("sb's") == "somebody's")
+
+print()
+print("== 9. 设置页参数读写（用临时副本，不动真配置）==")
+import shutil
+import tempfile
+
+from zxw import uiserver
+
+tmpdir = tempfile.mkdtemp()
+cfg_copy = os.path.join(tmpdir, "config.py")
+shutil.copy(
+    os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "config.py"),
+    cfg_copy,
+)
+vals = uiserver.load_values(cfg_copy)
+check("能读出配置", vals.get("TTS_ENGINE") == "auto" and "MATCH_MIN_SCORE" in vals,
+      str(vals.get("TTS_ENGINE")))
+new_vals = uiserver.apply_changes(
+    {"TTS_RATE": 140, "MATCH_MIN_SCORE": 0.6, "RUN_MODE": "reading"}, cfg_copy
+)
+check("数值写回", new_vals["TTS_RATE"] == 140
+      and abs(new_vals["MATCH_MIN_SCORE"] - 0.6) < 1e-9,
+      str((new_vals["TTS_RATE"], new_vals["MATCH_MIN_SCORE"])))
+check("字符串写回", new_vals["RUN_MODE"] == "reading", str(new_vals.get("RUN_MODE")))
+src = open(cfg_copy, encoding="utf-8").read()
+check("注释保留（TTS_RATE 行尾注释还在）", "越小越慢" in src)
+shutil.rmtree(tmpdir, ignore_errors=True)
+
+print()
 if FAILED:
     print(f"有 {len(FAILED)} 项失败: {FAILED}")
     sys.exit(1)

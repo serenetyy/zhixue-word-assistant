@@ -13,7 +13,7 @@ import time
 import config
 from . import actions, matcher, page, reading, spelling, watcher
 from .tts import Speaker
-from .util import ts
+from .util import speech_text, ts
 
 MODE_NAMES = {"all": "朗读+拼写", "reading": "只跑朗读", "spelling": "只跑拼写"}
 
@@ -60,14 +60,14 @@ def _handle_keys(kb, d, speaker, state):
         if cmd == "r" and result:
             w = result[0]["item"].get("word")
             if w:
-                speaker.speak(w, force=True)
+                speaker.speak(speech_text(w), force=True)
                 print(f"[{ts()}] 重读 {w}")
         elif cmd in ("1", "2", "3") and result:
             i = int(cmd) - 1
             if i < len(result):
                 w = result[i]["item"].get("word")
                 if w:
-                    speaker.speak(w, force=True)
+                    speaker.speak(speech_text(w), force=True)
                     print(f"[{ts()}] 试听 {w}")
         elif cmd == "p":
             got = actions.find_and_click(d, config.READ_BUTTONS)
@@ -120,7 +120,7 @@ def _act(d, phase, word, speaker, items):
     elif phase == "spelling" and config.AUTO_FILL_ANSWER:
         spelling.do_spelling(d, word, speaker, items)
     else:
-        if speaker.speak(word):
+        if speaker.speak(speech_text(word)):
             print(f"           >> 朗读 {word}")
         if phase == "unknown":
             print("           [阶段没认出来] 只朗读不操作；按钮文字对不上就改 config 里的")

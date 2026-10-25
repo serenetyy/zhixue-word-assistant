@@ -8,7 +8,7 @@ import time
 
 import config
 from . import actions
-from .util import fresh_word, progress_text, ts
+from .util import fresh_word, progress_text, speech_text, ts
 
 
 def _wait_record_result(d, timeout):
@@ -31,7 +31,10 @@ def _wait_record_result(d, timeout):
 def _record_once(d, word, speaker, items, min_repeat=1):
     """重新识别 → 提前合成音频 → 点录音 → 朗读 → 点波纹结束录音。动作都点到了返回 True"""
     word = fresh_word(d, items, word)           # 每次朗读前重新识别，不拿旧词
-    speaker.prepare(word)                       # Edge 需要联网合成，先在录音窗口外备好
+    spoken = speech_text(word)                  # 缩写展开：sth → something（拼写仍用原词）
+    if spoken != word:
+        print(f"           （朗读时读作: {spoken}）")
+    speaker.prepare(spoken)
     repeat = max(min_repeat, speaker.repeat_fit(config.READ_RECORD_BUDGET))
     got = actions.click_control(d, [config.ID_RECORD], config.READ_BUTTONS)
     if not got:
@@ -39,7 +42,7 @@ def _record_once(d, word, speaker, items, min_repeat=1):
     print(f"[{ts()}] 朗读页: 点『录音』成功（{got}，读 {repeat} 遍）")
     time.sleep(config.READ_AFTER_CLICK_WAIT)
 
-    speaker.speak(word, force=True, repeat=repeat)
+    speaker.speak(spoken, force=True, repeat=repeat)
     speaker.wait()                              # 等读完
     time.sleep(config.READ_AFTER_SPEAK_WAIT)
 

@@ -1,0 +1,326 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>智学网单词助手 · 设置</title>
+<style>
+  :root{
+    --teal:#0c9d8f; --teal-dark:#0a7f74; --bg:#f2f5f6; --card:#fff;
+    --text:#1d2b2a; --muted:#6b7c7a; --line:#e3e9e8;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--text);
+       font:15px/1.6 "Segoe UI","Microsoft YaHei",system-ui,sans-serif}
+  header{padding:24px 24px 4px;max-width:820px;margin:0 auto}
+  header h1{margin:0;font-size:20px}
+  header p{margin:6px 0 0;color:var(--muted);font-size:13px}
+  header code{background:#e8eeee;border-radius:5px;padding:1px 6px;font-size:12px}
+  main{max-width:820px;margin:0 auto;padding:14px 24px 96px}
+  .card{background:var(--card);border:1px solid var(--line);border-radius:14px;
+        padding:18px 20px;margin-bottom:14px;box-shadow:0 1px 2px rgba(20,40,38,.04)}
+  .card h2{margin:0 0 12px;font-size:15px;color:var(--teal-dark);
+           display:flex;align-items:center;gap:8px}
+  .card h2::before{content:"";width:7px;height:7px;border-radius:50%;background:var(--teal)}
+  .row{display:flex;align-items:center;gap:12px;margin:10px 0;flex-wrap:wrap}
+  .row label.k{flex:0 0 110px;color:var(--muted);font-size:13px}
+  select,input[type=number],input[type=text]{
+        padding:7px 10px;border:1px solid var(--line);border-radius:9px;
+        background:#fbfcfc;font:inherit;color:var(--text);min-width:150px}
+  select:focus,input:focus{outline:2px solid rgba(12,157,143,.25);border-color:var(--teal)}
+  input[type=range]{width:220px;accent-color:var(--teal)}
+  .val{min-width:44px;color:var(--teal-dark);font-weight:600;font-variant-numeric:tabular-nums}
+  .hint{color:var(--muted);font-size:12px}
+  .check{display:flex;align-items:center;gap:9px;margin:9px 0;font-size:14px;cursor:pointer}
+  input[type=checkbox]{width:17px;height:17px;accent-color:var(--teal)}
+  .preview{display:flex;gap:10px;align-items:center;margin-top:4px;flex-wrap:wrap}
+  .preview input{flex:1 1 220px}
+  button{cursor:pointer;border:none;border-radius:9px;font:inherit}
+  button:disabled{opacity:.55;cursor:default}
+  button.primary{background:var(--teal);color:#fff;padding:9px 20px}
+  button.primary:hover{background:var(--teal-dark)}
+  button.ghost{background:#fff;border:1px solid var(--line);padding:8px 18px;color:var(--teal-dark)}
+  button.ghost:hover{border-color:var(--teal)}
+  footer.bar{position:fixed;left:0;right:0;bottom:0;background:rgba(255,255,255,.96);
+        border-top:1px solid var(--line)}
+  .bar-inner{max-width:820px;margin:0 auto;padding:12px 24px;display:flex;
+        align-items:center;justify-content:flex-end;gap:14px}
+  #saveStatus{font-size:13px;color:var(--muted)}
+  #saveStatus.ok{color:var(--teal-dark)}
+  #saveStatus.err{color:#b91c1c}
+  .divider{height:1px;background:var(--line);margin:14px 0}
+</style>
+</head>
+<body>
+<header>
+  <h1>智学网单词助手 · 设置</h1>
+  <p>保存会写回 <code>config.py</code>；<b>语音试读立即生效</b>，其他改动需重启 <code>python main.py run</code>。</p>
+</header>
+<main>
+  <section class="card">
+    <h2>运行范围</h2>
+    <div class="row">
+      <label class="k">做题范围</label>
+      <select id="RUN_MODE"></select>
+      <span class="hint">跑 run 时也可用 --mode 临时覆盖</span>
+    </div>
+  </section>
+
+  <section class="card">
+    <h2>朗读语音</h2>
+    <div class="row">
+      <label class="k">语音引擎</label>
+      <select id="TTS_ENGINE"></select>
+    </div>
+    <div class="row">
+      <label class="k">Piper 模型</label>
+      <select id="TTS_PIPER_MODEL"></select>
+      <span class="hint">模型放在 data/piper_voices/</span>
+    </div>
+    <div class="row">
+      <label class="k">本机嗓音</label>
+      <select id="TTS_VOICE_HINT"></select>
+    </div>
+    <div class="row">
+      <label class="k">语速</label>
+      <input type="range" id="TTS_RATE" min="80" max="250" step="5">
+      <span class="val" id="TTS_RATE_v"></span>
+      <span class="hint">越大越快（对 Piper 不生效）</span>
+    </div>
+    <div class="row">
+      <label class="k">跟读读几遍</label>
+      <input type="number" id="TTS_REPEAT_READING" min="1" max="3" step="1" style="width:80px">
+      <span class="hint">读多遍更稳但更慢，保证不超录音 10 秒</span>
+    </div>
+    <label class="check"><input type="checkbox" id="SPEAK_IN_SPELLING"> 拼写环节也朗读</label>
+    <div class="divider"></div>
+    <div class="preview">
+      <input type="text" id="previewText" placeholder="输入单词试读，比如 striking">
+      <button class="ghost" id="previewBtn">试读</button>
+      <span id="previewStatus" class="hint"></span>
+    </div>
+    <p class="hint">试读用上面表单的参数（不用先保存）；每次试读先清空输入框，不会串词。</p>
+  </section>
+
+  <section class="card">
+    <h2>自动作答</h2>
+    <label class="check"><input type="checkbox" id="AUTO_READING_FLOW"> 朗读页自动（点录音 → 朗读 → 点波纹 → 下一题）</label>
+    <label class="check"><input type="checkbox" id="AUTO_FILL_ANSWER"> 拼写页自动填答案</label>
+    <label class="check"><input type="checkbox" id="AUTO_CLICK_NEXT"> 朗读页读完后自动点「下一题」</label>
+    <div class="row">
+      <label class="k">录音没过重录</label>
+      <input type="number" id="READ_RETRY_TIMES" min="0" max="3" step="1" style="width:80px">
+      <span class="hint">次（0 = 不重录）</span>
+    </div>
+    <div class="row">
+      <label class="k">点录音后等待</label>
+      <input type="number" id="READ_AFTER_CLICK_WAIT" min="0" max="3" step="0.1" style="width:80px">
+      <span class="hint">秒，再出声</span>
+    </div>
+    <div class="row">
+      <label class="k">读完等待</label>
+      <input type="number" id="READ_AFTER_SPEAK_WAIT" min="0" max="5" step="0.1" style="width:80px">
+      <span class="hint">秒，再点波纹</span>
+    </div>
+    <div class="row">
+      <label class="k">等评测超时</label>
+      <input type="number" id="NEXT_BUTTON_WAIT" min="5" max="60" step="1" style="width:80px">
+      <span class="hint">秒</span>
+    </div>
+  </section>
+
+  <section class="card">
+    <h2>匹配</h2>
+    <div class="row">
+      <label class="k">认词阈值</label>
+      <input type="range" id="MATCH_MIN_SCORE" min="0.30" max="0.90" step="0.01">
+      <span class="val" id="MATCH_MIN_SCORE_v"></span>
+      <span class="hint">越高越谨慎</span>
+    </div>
+    <div class="row">
+      <label class="k">歧义阈值</label>
+      <input type="range" id="MATCH_MIN_MARGIN" min="0" max="0.30" step="0.01">
+      <span class="val" id="MATCH_MIN_MARGIN_v"></span>
+      <span class="hint">第一名领先第二名多少才算不歧义</span>
+    </div>
+  </section>
+</main>
+<footer class="bar">
+  <div class="bar-inner">
+    <span id="saveStatus"></span>
+    <button class="primary" id="saveBtn">保存设置</button>
+  </div>
+</footer>
+<script>
+const $ = (id) => document.getElementById(id);
+let cfg = {};
+
+async function api(path, opts) {
+  const res = await fetch(path, opts);
+  if (!res.ok) {
+    let msg = "";
+    try { msg = (await res.json()).error || ""; } catch (e) {}
+    throw new Error(msg || ("HTTP " + res.status));
+  }
+  return await res.json();
+}
+
+function fillSelect(sel, items, current) {
+  sel.innerHTML = "";
+  let found = false;
+  for (const it of items) {
+    const opt = document.createElement("option");
+    opt.value = it.value;
+    opt.textContent = it.label;
+    if (it.value === current) { opt.selected = true; found = true; }
+    sel.appendChild(opt);
+  }
+  if (!found && current) {
+    const opt = document.createElement("option");
+    opt.value = current;
+    opt.textContent = current + "（当前配置）";
+    opt.selected = true;
+    sel.prepend(opt);
+  }
+}
+
+function setRange(id, v, fmt) {
+  $(id).value = v;
+  $(id + "_v").textContent = fmt ? fmt(v) : v;
+}
+
+function bindRange(id, fmt) {
+  const el = $(id);
+  el.addEventListener("input", () => {
+    $(id + "_v").textContent = fmt ? fmt(el.value) : el.value;
+  });
+}
+
+const setChecked = (id, v) => { $(id).checked = !!v; };
+const setVal = (id, v) => { $(id).value = v; };
+
+async function load() {
+  cfg = await api("/api/config");
+  const voices = await api("/api/voices");
+
+  fillSelect($("RUN_MODE"), [
+    {value:"all", label:"朗读 + 拼写（都做）"},
+    {value:"reading", label:"只做朗读"},
+    {value:"spelling", label:"只做拼写"},
+  ], cfg.RUN_MODE);
+
+  fillSelect($("TTS_ENGINE"), [
+    {value:"auto", label:"自动（Piper → 本机 → PowerShell）"},
+    {value:"piper", label:"Piper 本地神经语音"},
+    {value:"sapi", label:"本机 SAPI"},
+    {value:"edge", label:"Edge 在线（接口常挂）"},
+    {value:"powershell", label:"PowerShell"},
+  ], cfg.TTS_ENGINE);
+
+  fillSelect($("TTS_PIPER_MODEL"),
+    (voices.piper || []).map(n => ({value:"data/piper_voices/" + n, label:n})),
+    cfg.TTS_PIPER_MODEL);
+
+  fillSelect($("TTS_VOICE_HINT"),
+    (voices.sapi || []).map(n => ({value:n, label:n})),
+    cfg.TTS_VOICE_HINT);
+
+  setRange("TTS_RATE", cfg.TTS_RATE);
+  setVal("TTS_REPEAT_READING", cfg.TTS_REPEAT_READING);
+  setChecked("SPEAK_IN_SPELLING", cfg.SPEAK_IN_SPELLING);
+  setChecked("AUTO_READING_FLOW", cfg.AUTO_READING_FLOW);
+  setChecked("AUTO_FILL_ANSWER", cfg.AUTO_FILL_ANSWER);
+  setChecked("AUTO_CLICK_NEXT", cfg.AUTO_CLICK_NEXT);
+  setVal("READ_RETRY_TIMES", cfg.READ_RETRY_TIMES);
+  setVal("READ_AFTER_CLICK_WAIT", cfg.READ_AFTER_CLICK_WAIT);
+  setVal("READ_AFTER_SPEAK_WAIT", cfg.READ_AFTER_SPEAK_WAIT);
+  setVal("NEXT_BUTTON_WAIT", cfg.NEXT_BUTTON_WAIT);
+  setRange("MATCH_MIN_SCORE", cfg.MATCH_MIN_SCORE, v => Number(v).toFixed(2));
+  setRange("MATCH_MIN_MARGIN", cfg.MATCH_MIN_MARGIN, v => Number(v).toFixed(2));
+}
+
+function collect() {
+  return {
+    RUN_MODE: $("RUN_MODE").value,
+    TTS_ENGINE: $("TTS_ENGINE").value,
+    TTS_PIPER_MODEL: $("TTS_PIPER_MODEL").value,
+    TTS_VOICE_HINT: $("TTS_VOICE_HINT").value,
+    TTS_RATE: Number($("TTS_RATE").value),
+    TTS_REPEAT_READING: Number($("TTS_REPEAT_READING").value),
+    SPEAK_IN_SPELLING: $("SPEAK_IN_SPELLING").checked,
+    AUTO_READING_FLOW: $("AUTO_READING_FLOW").checked,
+    AUTO_FILL_ANSWER: $("AUTO_FILL_ANSWER").checked,
+    AUTO_CLICK_NEXT: $("AUTO_CLICK_NEXT").checked,
+    READ_RETRY_TIMES: Number($("READ_RETRY_TIMES").value),
+    READ_AFTER_CLICK_WAIT: Number($("READ_AFTER_CLICK_WAIT").value),
+    READ_AFTER_SPEAK_WAIT: Number($("READ_AFTER_SPEAK_WAIT").value),
+    NEXT_BUTTON_WAIT: Number($("NEXT_BUTTON_WAIT").value),
+    MATCH_MIN_SCORE: Number($("MATCH_MIN_SCORE").value),
+    MATCH_MIN_MARGIN: Number($("MATCH_MIN_MARGIN").value),
+  };
+}
+
+function status(text, cls) {
+  const el = $("saveStatus");
+  el.textContent = text;
+  el.className = cls || "";
+}
+
+async function save() {
+  $("saveBtn").disabled = true;
+  try {
+    const r = await api("/api/config", {
+      method: "POST",
+      headers: {"Content-Type": "application/json"},
+      body: JSON.stringify({changes: collect()}),
+    });
+    cfg = r.config || cfg;
+    status("已保存（重启 run 后生效）", "ok");
+  } catch (e) {
+    status("保存失败：" + e.message, "err");
+  } finally {
+    $("saveBtn").disabled = false;
+  }
+}
+
+async function preview() {
+  const input = $("previewText");
+  const text = input.value.trim();
+  if (!text) { input.focus(); return; }
+  input.value = "";                    // 每次捕获前清空，防止串词
+  const btn = $("previewBtn");
+  btn.disabled = true;
+  $("previewStatus").textContent = "播放中...";
+  try {
+    const r = await api("/api/speak", {
+      method: "POST",
+      headers: {"Content-Type": "application/json"},
+      body: JSON.stringify({
+        text,
+        engine: $("TTS_ENGINE").value,
+        rate: Number($("TTS_RATE").value),
+        sapi_hint: $("TTS_VOICE_HINT").value,
+        piper_model: $("TTS_PIPER_MODEL").value,
+      }),
+    });
+    $("previewStatus").textContent =
+      `已试读「${text}」（${r.engine}）`;
+  } catch (e) {
+    $("previewStatus").textContent = "试读失败：" + e.message;
+  } finally {
+    btn.disabled = false;
+    input.focus();
+  }
+}
+
+$("saveBtn").addEventListener("click", save);
+$("previewBtn").addEventListener("click", preview);
+$("previewText").addEventListener("keydown", (e) => { if (e.key === "Enter") preview(); });
+bindRange("TTS_RATE");
+bindRange("MATCH_MIN_SCORE", v => Number(v).toFixed(2));
+bindRange("MATCH_MIN_MARGIN", v => Number(v).toFixed(2));
+
+load().catch(e => status("加载失败：" + e.message + "（服务启动了吗？）", "err"));
+</script>
+</body>
+</html>

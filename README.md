@@ -8,6 +8,9 @@
 - **拼写页**：从中文释义模糊匹配出单词 → 用 App 自绘键盘逐字母敲入
   （键盘是画出来的，只能按实测坐标点）→ 点「确定」→ 点「下一题」。
   默认不朗读（想让它读就把 `config.SPEAK_IN_SPELLING` 改成 True）。单题约 9 秒。
+- **设置页**：`python main.py ui` 打开本地网页，改参数（范围/嗓音/模型/语速/阈值…）、
+  单词试读，保存会写回 `config.py`。
+- 词表里的 `sth` / `sb` 等缩写，朗读时自动读成 something / somebody（拼写仍按原词）。
 - 一切自动操作都可以在 `config.py` 里关掉（`AUTO_READING_FLOW` / `AUTO_FILL_ANSWER`），
   关掉后只做识别 + 朗读 + 提示，自己动手。
 
@@ -36,12 +39,14 @@ zhixuewang/
 │   ├── reading.py       朗读（跟读）流程 —— 和拼写完全分开
 │   ├── spelling.py      拼写流程 —— 和朗读完全分开
 │   ├── keyboard.py      拼写页自绘键盘的按键坐标（实测值）
+│   ├── uiserver.py      设置页的本地服务（读写 config / 试读接口）
 │   ├── util.py          两个流程共用的小工具
 │   ├── tts.py           电脑朗读（Piper 本地神经语音 → SAPI → PowerShell 自动降级；Edge 可选）
 │   ├── watcher.py       弹窗处理
 │   └── monitor.py       主循环：盯屏 → 认词 → 分发给两个流程
+├── ui/index.html        可视化设置页（python main.py ui 打开）
 ├── tests/test_matcher.py  不连设备也能跑的自测
-└── data/                抓取结果（words.json）、probe 的控件树、原始屏幕记录
+└── data/                抓取结果（words.json）、probe 的控件树、Piper 模型等
 ```
 
 ## 安装（已经帮你装好了，换电脑时照做）
@@ -91,6 +96,7 @@ REM    .venv\Scripts\python main.py run --mode spelling   只自动做拼写题
 | `python main.py probe` | 打印当前屏幕读到的文字（已过滤噪音）；`--raw` 连噪音一起看 |
 | `python main.py capture` | 自动下滑抓整份单词表 → `data/words.json` |
 | `python main.py run` | 监听练习页，朗读+拼写都自动；加 `--mode reading` / `--mode spelling` 可只跑其中一个 |
+| `python main.py ui` | 打开可视化设置页（默认 http://127.0.0.1:8765） |
 | `python main.py match "贫瘠的"` | 离线测匹配：看会匹配到哪个词、得分多少 |
 | `python main.py tap 朗读` | 在手机上点一个文字按钮（调试按钮文字用） |
 | `python main.py type apple` | 往当前页面的输入框填字（调试填答用） |
@@ -113,6 +119,8 @@ REM    .venv\Scripts\python main.py run --mode spelling   只自动做拼写题
 | `AFTER_FILL_WAIT` / `AFTER_SUBMIT_WAIT` | 0.4 / 0.8 | 填完→提交、提交→下一题的间隔 |
 | `NEXT_BUTTON_WAIT` | 25 | 等录音评测出结果最多几秒 |
 | `READ_RETRY_TIMES` | 1 | 录音没通过时自动重录几遍（0=直接跳过） |
+| `RUN_MODE` | all | 做题范围：all / reading / spelling（run 不带 --mode 时用它） |
+| `SPEECH_EXPAND` | sth→something… | 朗读时展开的缩写（只影响发音，不影响拼写） |
 | `POLL_INTERVAL` / `PAGE_SETTLE` | 2.0 / 1.2 | 看屏频率、页面稳定等待 |
 | `TTS_RATE` / `TTS_REPEAT_READING` | 150 / 1 | 语速、跟读录音读几遍（想更稳改 2；脚本保证不超 10 秒） |
 | `TTS_VOICE_HINT` | zira | 本机(SAPI)嗓音关键字：`zira`（女声）/ `david`（男声）/ `huihui`（中文） |

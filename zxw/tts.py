@@ -17,10 +17,13 @@ import subprocess
 import tempfile
 import threading
 import time
+import wave
+import winsound
 
 import config
 
 _MP3_PATH = os.path.join(tempfile.gettempdir(), "zxw_tts.mp3")
+_PREVIEW_PIPER = {}       # 设置页试读用的 Piper 模型缓存（按模型路径）
 
 
 def _play_mp3(path):
@@ -48,6 +51,90 @@ def _play_mp3(path):
             raise RuntimeError(f"MCI 播放失败（错误码 {err}）")
     finally:
         send("close zxw_tts")
+
+
+def _powershell_say(text, rate_val=None):
+    """最后的兜底：用 PowerShell 的 System.Speech 读一遍（同步）"""
+    rate = max(-10, min(10, int(round(((config.TTS_RATE if rate_val is None else rate_val) - 150) / 25.0))))
+    safe = str(text).replace("'", "''")
+    ps = (
+        "Add-Type -AssemblyName System.Speech; "
+        "$s = New-Object System.Speech.Synthesis.SpeechSynthesizer; "
+        f"$s.Rate = {rate}; "
+        "try { $s.SelectVoice((($s.GetInstalledVoices() | Where-Object "
+        "{ $_.VoiceInfo.Culture.Name -like 'en*' })[0]).VoiceInfo.Name) } catch {}; "
+        f"$s.Speak('{safe}')"
+    )
+    flags = 0x08000000 if os.name == "nt" else 0   # CREATE_NO_WINDOW：不弹黑框
+    subprocess.run(
+        ["powershell", "-NoProfile", "-Command", ps],
+        capture_output=True, timeout=120, creationflags=flags,
+    )
+
+
+def _resolve_piper_model(path_str):
+    from pathlib import Path
+
+    p = Path(path_str or config.TTS_PIPER_MODEL)
+    if not p.is_absolute():
+        p = Path(config.ROOT) / p
+    return p
+
+
+def speak_preview(text, engine="auto", rate=None, sapi_hint=None, piper_model=None):
+    """设置页"试读"：按传入的参数同步读一遍，返回实际用的引擎名。
+
+    和正式流程的 Speaker 分开实现（那个是后台队列），这里要立即、可指定嗓音/模型。
+    """
+    text = (text or "").strip()
+    if not text:
+        return "none"
+    engine = (engine or "auto").lower()
+    rate_val = int(rate) if rate is not None else config.TTS_RATE
+    hint = sapi_hint if sapi_hint is not None else config.TTS_VOICE_HINT
+    used = None
+
+    if engine in ("auto", "piper"):
+        p = _resolve_piper_model(piper_model)
+        if p.exists():
+            try:
+                voice = _PREVIEW_PIPER.get(str(p))
+                if voice is None:
+                    from piper import PiperVoice
+
+                    voice = PiperVoice.load(str(p))
+                    _PREVIEW_PIPER[str(p)] = voice
+                path = os.path.join(tempfile.gettempdir(), "zxw_preview.wav")
+                with wave.open(path, "wb") as wf:
+                    voice.synthesize_wav(text, wf)
+                winsound.PlaySound(path, winsound.SND_FILENAME)
+                used = "piper"
+            except Exception as e:
+                print(f"[试读] Piper 失败: {e}")
+        else:
+            print(f"[试读] Piper 模型不存在: {p}")
+
+    if used is None and engine in ("auto", "sapi", "edge"):
+        try:
+            import pythoncom
+            import win32com.client
+
+            pythoncom.CoInitialize()
+            v = win32com.client.Dispatch("SAPI.SpVoice")
+            pick = _pick_voice(v, hint)
+            if pick is not None:
+                v.Voice = pick
+            v.Rate = max(-10, min(10, int(round((rate_val - 150) / 25.0))))
+            v.Volume = int(max(0.0, min(1.0, config.TTS_VOLUME)) * 100)
+            v.Speak(text)
+            used = "sapi"
+        except Exception as e:
+            print(f"[试读] SAPI 失败: {e}")
+
+    if used is None:
+        _powershell_say(text, rate_val)
+        used = "powershell"
+    return used
 
 
 def _pick_voice(voice_obj, hint):
@@ -251,10 +338,6 @@ class Speaker:
             return None
 
     def _say_piper(self, voice, text):
-        import wave
-
-        import winsound
-
         path = os.path.join(tempfile.gettempdir(), "zxw_piper.wav")
         with wave.open(path, "wb") as wf:
             voice.synthesize_wav(text, wf)
@@ -307,21 +390,7 @@ class Speaker:
             return None
 
     def _say_powershell(self, text):
-        rate = max(-10, min(10, int(round((config.TTS_RATE - 150) / 25.0))))
-        safe = text.replace("'", "''")
-        ps = (
-            "Add-Type -AssemblyName System.Speech; "
-            "$s = New-Object System.Speech.Synthesis.SpeechSynthesizer; "
-            f"$s.Rate = {rate}; "
-            "try { $s.SelectVoice((($s.GetInstalledVoices() | Where-Object "
-            "{ $_.VoiceInfo.Culture.Name -like 'en*' })[0]).VoiceInfo.Name) } catch {}; "
-            f"$s.Speak('{safe}')"
-        )
-        flags = 0x08000000 if os.name == "nt" else 0   # CREATE_NO_WINDOW：不弹黑框
-        subprocess.run(
-            ["powershell", "-NoProfile", "-Command", ps],
-            capture_output=True, timeout=120, creationflags=flags,
-        )
+        _powershell_say(text)
 
 
 def list_voices():

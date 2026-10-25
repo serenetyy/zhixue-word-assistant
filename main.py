@@ -5,6 +5,7 @@
     python main.py probe            看当前屏幕读到哪些文字（--raw 连噪音一起看）
     python main.py capture          抓取单词列表 → data/words.json
     python main.py run              开始监听练习页（自动识别 + 朗读 + 作答）
+    python main.py ui               打开可视化设置页（改参数 / 选嗓音 / 单词试读）
     python main.py match "贫瘠的"   离线测试模糊匹配
     python main.py tap 朗读         在手机屏幕上点一个文字按钮（调试用）
     python main.py type apple       往当前页面的输入框填字（调试用）
@@ -70,8 +71,9 @@ def cmd_run(args):
     items = capture.load()
     print(f"单词表: {len(items)} 个词  ({config.WORDS_FILE})")
     print("示例: " + "；".join(it["word"] for it in items[:5]))
+    mode = args.mode or getattr(config, "RUN_MODE", "all")
     d = device.connect(args.serial)
-    monitor.run(d, items, mode=args.mode)
+    monitor.run(d, items, mode=mode)
 
 
 def cmd_match(args):
@@ -135,6 +137,12 @@ def cmd_type(args):
         print("把这页的 probe（python main.py probe --raw）结果发我看下，我来加对应的定位方式。")
 
 
+def cmd_ui(args):
+    from zxw import uiserver
+
+    uiserver.serve(port=args.port, open_browser=not args.no_browser)
+
+
 def cmd_voices(args):
     from zxw.tts import list_voices
 
@@ -166,9 +174,14 @@ def main():
 
     sp = sub.add_parser("run", help="监听练习页，识别 + 朗读 + 作答")
     sp.add_argument("--serial", default=None)
-    sp.add_argument("--mode", choices=("all", "reading", "spelling"), default="all",
-                    help="all=朗读+拼写都跑（默认）；reading=只跑跟读；spelling=只跑拼写")
+    sp.add_argument("--mode", choices=("all", "reading", "spelling"), default=None,
+                    help="all=朗读+拼写；reading=只跑跟读；spelling=只跑拼写（不填用 config.RUN_MODE）")
     sp.set_defaults(func=cmd_run)
+
+    sp = sub.add_parser("ui", help="打开可视化设置页（本地网页）")
+    sp.add_argument("--port", type=int, default=8765)
+    sp.add_argument("--no-browser", action="store_true", help="不自动打开浏览器")
+    sp.set_defaults(func=cmd_ui)
 
     sp = sub.add_parser("match", help="离线测试模糊匹配")
     sp.add_argument("text", nargs="+", help='要匹配的文字，例如: "苹果"')

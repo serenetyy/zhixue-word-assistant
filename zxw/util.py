@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
-"""小工具：时间戳、重新识别当前单词、读进度文字（朗读/拼写流程共用）"""
+"""小工具：时间戳、重新识别当前单词、读进度文字、朗读文本展开（两个流程共用）"""
+import re
 import time
 
 import config
@@ -8,6 +9,25 @@ from . import actions, matcher, page
 
 def ts():
     return time.strftime("%H:%M:%S")
+
+
+def speech_text(word):
+    """把词条里的缩写展开成能读的完整词（只为发音，不影响拼写）。
+
+    "set sth aside" → "set something aside"；"sth" → "something"
+    """
+    if not word:
+        return word
+    out = str(word)
+    # 长缩写先替换（"e.g." 要在 "etc" 之类之前）
+    for key in sorted(config.SPEECH_EXPAND, key=len, reverse=True):
+        out = re.sub(
+            rf"(?<![A-Za-z]){re.escape(key)}(?![A-Za-z])",
+            config.SPEECH_EXPAND[key],
+            out,
+            flags=re.IGNORECASE,
+        )
+    return out
 
 
 def fresh_word(d, items, fallback):
