@@ -144,6 +144,6 @@ Write-Host "  安装完成！"
 Write-Host ""
 Write-Host "  双击 run.bat 开始使用"
 Write-Host "  第一次使用前：模拟器停在智学网【单词列表】页，"
-Write-Host "  在 run.bat 里选 [4] 自定义参数，输入 capture 抓取单词表。"
+Write-Host "  在 run.bat 里选 [3] 抓取单词表。"
 Write-Host "============================================"
 Pause-Exit 0

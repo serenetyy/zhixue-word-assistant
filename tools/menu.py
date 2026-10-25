@@ -92,6 +92,13 @@ def autoflow():
     pause()
 
 
+def capture_words():
+    print()
+    print("请把模拟器停在智学网【单词列表】页（能看到英文、音标、中文的那一页）。")
+    run_main(["capture"])
+    pause()
+
+
 def ui_panel():
     print()
     print("正在新窗口启动设置页（关闭那个窗口即可停止）...")
@@ -128,11 +135,12 @@ def main():
         print("============================================")
         print("  [1] 交互模式     跑一个模块，结束后询问下一步（Ctrl+C 可随时退出）")
         print("  [2] 自动流转     模块跑完后自动切换另一个模块")
-        print("  [3] 网页面板     打开本地设置页（新窗口）")
-        print("  [4] 自定义参数   打印命令说明，手动输入参数运行 main.py")
+        print("  [3] 抓取单词表   模拟器停在单词列表页，抓取到 data\\words.json")
+        print("  [4] 网页面板     打开本地设置页（新窗口）")
+        print("  [5] 自定义参数   打印命令说明，手动输入参数运行 main.py")
         print("  [0] 退出")
         print("============================================")
-        ans = ask("请选择 [0-4]: ")
+        ans = ask("请选择 [0-5]: ")
         if ans == "0":
             break
         if ans == "1":
@@ -141,8 +149,10 @@ def main():
         elif ans == "2":
             autoflow()
         elif ans == "3":
-            ui_panel()
+            capture_words()
         elif ans == "4":
+            ui_panel()
+        elif ans == "5":
             custom()
     print("再见。")
 
