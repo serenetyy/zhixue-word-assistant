@@ -287,15 +287,23 @@ vals = uiserver.load_values(cfg_copy)
 check("能读出配置", vals.get("TTS_ENGINE") == "auto" and "MATCH_MIN_SCORE" in vals,
       str(vals.get("TTS_ENGINE")))
 new_vals = uiserver.apply_changes(
-    {"TTS_RATE": 140, "MATCH_MIN_SCORE": 0.6, "RUN_MODE": "reading"}, cfg_copy
+    {"TTS_PIPER_LENGTH": 1.1, "MATCH_MIN_SCORE": 0.6, "RUN_MODE": "spelling"}, cfg_copy
 )
-check("数值写回", new_vals["TTS_RATE"] == 140
+check("数值写回", abs(new_vals["TTS_PIPER_LENGTH"] - 1.1) < 1e-9
       and abs(new_vals["MATCH_MIN_SCORE"] - 0.6) < 1e-9,
-      str((new_vals["TTS_RATE"], new_vals["MATCH_MIN_SCORE"])))
-check("字符串写回", new_vals["RUN_MODE"] == "reading", str(new_vals.get("RUN_MODE")))
+      str((new_vals["TTS_PIPER_LENGTH"], new_vals["MATCH_MIN_SCORE"])))
+check("字符串写回", new_vals["RUN_MODE"] == "spelling", str(new_vals.get("RUN_MODE")))
 src = open(cfg_copy, encoding="utf-8").read()
-check("注释保留（TTS_RATE 行尾注释还在）", "越小越慢" in src)
+check("注释保留（TTS_PIPER_LENGTH 行尾注释还在）", ">1 更慢" in src)
 shutil.rmtree(tmpdir, ignore_errors=True)
+
+print()
+print("== 10. 单模块 / 进度解析 ==")
+from zxw import monitor as monitor_mod
+
+check("进度解析 75/148", monitor_mod._progress_numbers(["单词拼写", "75/148", "上一题"]) == (75, 148))
+check("进度解析（没有进度文字）", monitor_mod._progress_numbers(["abc", "1-2"]) is None)
+check("模块名齐全", set(monitor_mod.MODE_NAMES) == {"reading", "spelling"})
 
 print()
 if FAILED:

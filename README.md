@@ -6,10 +6,11 @@
   → 点「波纹」结束录音 → 等评测（没通过会自动重录一次，重录时读 2 遍更稳）→ 点「下一题」。
   单题约 10 秒；读多遍可以在 `config.py` 把 `TTS_REPEAT_READING` 改为 2 或 3。
 - **拼写页**：从中文释义模糊匹配出单词 → 用 App 自绘键盘逐字母敲入
-  （键盘是画出来的，只能按实测坐标点）→ 点「确定」→ 点「下一题」。
-  默认不朗读（想让它读就把 `config.SPEAK_IN_SPELLING` 改成 True）。单题约 9 秒。
-- **设置页**：`python main.py ui` 打开本地网页，改参数（范围/嗓音/模型/语速/阈值…）、
-  单词试读，保存会写回 `config.py`。
+  （键盘是画出来的，只能按实测坐标点）→ 点「确定」→ 点「下一题」。单题约 9 秒。
+- **一次只跑一个模块**：朗读和拼写分开运行（`--mode reading` / `--mode spelling`）。
+  当前模块做完、发现另一个模块的题时，会像 apt 一样问「是否接着做？[y/N]」，`-y` 自动继续。
+- **设置页**：`python main.py ui` 打开本地网页，换声音模型/语速/音量/阈值、单词试读，
+  保存会写回 `config.py`。
 - 词表里的 `sth` / `sb` 等缩写，朗读时自动读成 something / somebody（拼写仍按原词）。
 - 一切自动操作都可以在 `config.py` 里关掉（`AUTO_READING_FLOW` / `AUTO_FILL_ANSWER`），
   关掉后只做识别 + 朗读 + 提示，自己动手。
@@ -41,7 +42,7 @@ zhixuewang/
 │   ├── keyboard.py      拼写页自绘键盘的按键坐标（实测值）
 │   ├── uiserver.py      设置页的本地服务（读写 config / 试读接口）
 │   ├── util.py          两个流程共用的小工具
-│   ├── tts.py           电脑朗读（Piper 本地神经语音 → SAPI → PowerShell 自动降级；Edge 可选）
+│   ├── tts.py           电脑朗读（Piper 本地神经语音，PowerShell 兜底）
 │   ├── watcher.py       弹窗处理
 │   └── monitor.py       主循环：盯屏 → 认词 → 分发给两个流程
 ├── ui/index.html        可视化设置页（python main.py ui 打开）
@@ -71,12 +72,13 @@ REM ① 先确认能读到屏幕（可选，排障用）
 REM ② 手动把模拟器停在【单词列表】页 → 抓取
 .venv\Scripts\python main.py capture
 
-REM ③ 开始练习，进入练习页（朗读、拼写都自动做）
-.venv\Scripts\python main.py run
+REM ③ 开始练习（一次只跑一个模块）
+.venv\Scripts\python main.py run --mode reading     只做朗读
+.venv\Scripts\python main.py run --mode spelling    只做拼写
 
-REM    也可以分开跑：
-REM    .venv\Scripts\python main.py run --mode reading    只自动做跟读题
-REM    .venv\Scripts\python main.py run --mode spelling   只自动做拼写题
+REM    模块跑完后如果发现另一个模块的题，会问：是否接着做拼写模块？[y/N]
+REM    y=继续，n/回车=不做；想全自动就加 -y（apt -y 那样）
+.venv\Scripts\python main.py run --mode reading -y
 ```
 
 `run` 运行时的按键（自动流程卡住时用）：
@@ -95,7 +97,8 @@ REM    .venv\Scripts\python main.py run --mode spelling   只自动做拼写题
 |---|---|
 | `python main.py probe` | 打印当前屏幕读到的文字（已过滤噪音）；`--raw` 连噪音一起看 |
 | `python main.py capture` | 自动下滑抓整份单词表 → `data/words.json` |
-| `python main.py run` | 监听练习页，朗读+拼写都自动；加 `--mode reading` / `--mode spelling` 可只跑其中一个 |
+| `python main.py run --mode reading` | 只做朗读模块；跑完会问是否接着做拼写（`-y` 自动继续） |
+| `python main.py run --mode spelling` | 只做拼写模块；跑完会问是否接着做朗读（`-y` 自动继续） |
 | `python main.py ui` | 打开可视化设置页（默认 http://127.0.0.1:8765） |
 | `python main.py match "贫瘠的"` | 离线测匹配：看会匹配到哪个词、得分多少 |
 | `python main.py tap 朗读` | 在手机上点一个文字按钮（调试按钮文字用） |
@@ -122,10 +125,10 @@ REM    .venv\Scripts\python main.py run --mode spelling   只自动做拼写题
 | `RUN_MODE` | all | 做题范围：all / reading / spelling（run 不带 --mode 时用它） |
 | `SPEECH_EXPAND` | sth→something… | 朗读时展开的缩写（只影响发音，不影响拼写） |
 | `POLL_INTERVAL` / `PAGE_SETTLE` | 2.0 / 1.2 | 看屏频率、页面稳定等待 |
-| `TTS_RATE` / `TTS_REPEAT_READING` | 150 / 1 | 语速、跟读录音读几遍（想更稳改 2；脚本保证不超 10 秒） |
-| `TTS_VOICE_HINT` | zira | 本机(SAPI)嗓音关键字：`zira`（女声）/ `david`（男声）/ `huihui`（中文） |
-| `TTS_ENGINE` | auto | `auto`=Piper→SAPI→PowerShell 自动挑；也可固定 `piper` / `sapi`；`edge` 需联网且接口常挂 |
+| `TTS_REPEAT_READING` | 1 | 跟读录音读几遍（想更稳改 2；保证不超 10 秒） |
 | `TTS_PIPER_MODEL` | en_US-amy-medium.onnx | 本地神经语音模型，换声音就换这个文件 |
+| `TTS_PIPER_LENGTH` / `TTS_PIPER_VOLUME` | 1.0 / 1.0 | 语速（>1 更慢）、音量倍数（调大更容易被麦克风采到） |
+| `TTS_ENGINE` | auto | `auto`=Piper（出问题自动用 PowerShell 兜底） |
 | `NOISE_PACKAGES` / `NOISE_REGEXES` | systemui… | 状态栏噪音过滤规则 |
 | `AUTO_CLICK_TEXTS` | 知道了… | 自动点掉的弹窗按钮 |
 
@@ -157,11 +160,11 @@ REM    .venv\Scripts\python main.py run --mode spelling   只自动做拼写题
 都没有设备时脚本会自己试常见模拟器端口（MuMu 7555、雷电 5555、夜神 62001）。
 
 **没声音 / 想换嗓音**
-默认用本地 Piper 神经女声（`en_US-amy-medium`，离线、不需要联网，单题朗读很稳）。
-`.venv\Scripts\python main.py speak apple` 试音；`python main.py voices` 列出本机嗓音。
-换本地女声：`python -m piper.download_voices en_US-lessac-medium --download-dir data\piper_voices`
-再把 `config.py` 的 `TTS_PIPER_MODEL` 指向新的 .onnx。
-Edge 在线语音已被微软限流（403），默认不再使用；想试就把 `TTS_ENGINE` 改成 `"edge"`。
+只有 Piper 本地神经语音一种引擎（离线、不需要联网；Piper 出问题会自动用 PowerShell 兜底）。
+`.venv\Scripts\python main.py speak apple` 试音；`python main.py voices` 列出本地模型。
+换模型：设置页（`python main.py ui`）里直接选，或改 `config.TTS_PIPER_MODEL`。
+下载新模型：`python -m piper.download_voices en_US-lessac-medium --download-dir data\piper_voices`
+（HuggingFace 超时就换镜像下载：把地址域名 huggingface.co 换成 hf-mirror.com）。
 
 **匹配不准 / 老提示"有歧义"**
 `python main.py match "那段中文"` 复现，看 top 几名得分差多少再调 `MATCH_MIN_SCORE`；

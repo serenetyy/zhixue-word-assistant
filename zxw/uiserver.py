@@ -73,25 +73,11 @@ def apply_changes(changes, path=None):
 
 
 def list_voices():
-    """列可选的嗓音/模型：本机 SAPI 嗓音、Piper 模型、Edge 常用嗓音"""
-    out = {"sapi": [], "piper": [], "edge": []}
-    try:
-        import pythoncom
-        import win32com.client
-
-        pythoncom.CoInitialize()
-        v = win32com.client.Dispatch("SAPI.SpVoice")
-        vs = v.GetVoices()
-        out["sapi"] = [vs.Item(i).GetDescription() for i in range(vs.Count)]
-    except Exception as e:
-        out["sapi_error"] = str(e)
+    """列可选的 Piper 模型（放在 data/piper_voices/ 里的 .onnx）"""
+    out = {"piper": []}
     d = Path(config.ROOT) / "data" / "piper_voices"
     if d.exists():
         out["piper"] = sorted(p.name for p in d.glob("*.onnx"))
-    out["edge"] = [
-        "en-US-AriaNeural", "en-US-JennyNeural", "en-US-MichelleNeural",
-        "en-GB-SoniaNeural", "en-GB-LibbyNeural",
-    ]
     return out
 
 
@@ -135,10 +121,9 @@ class _Handler(BaseHTTPRequestHandler):
             elif self.path.startswith("/api/speak"):
                 used = tts.speak_preview(
                     data.get("text", ""),
-                    engine=data.get("engine"),
-                    rate=data.get("rate"),
-                    sapi_hint=data.get("sapi_hint"),
                     piper_model=data.get("piper_model"),
+                    length=data.get("length"),
+                    volume=data.get("volume"),
                 )
                 self._send(200, json.dumps(
                     {"ok": used != "none", "engine": used}, ensure_ascii=False))

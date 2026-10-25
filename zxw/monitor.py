@@ -1,11 +1,15 @@
 # -*- coding: utf-8 -*-
-"""核心循环：盯屏 → 认词 → 按阶段分发给 朗读流程 / 拼写流程。
+"""核心循环：盯屏 → 认词 → 只做当前模块（朗读 / 拼写）。
 
-- 朗读流程在 reading.py，拼写流程在 spelling.py，两边互不影响
-- 也可以只跑其中一个：
-    python main.py run --mode reading    （只处理跟读题）
-    python main.py run --mode spelling   （只处理拼写题）
+两个模块完全分开，一次只跑一个：
+    python main.py run --mode reading     只做朗读
+    python main.py run --mode spelling    只做拼写
+
+当前模块做完、检测到另一个模块的题时，会像 apt 一样问：
+    是否接着做拼写模块？[y/N]
+加 -y 就自动继续。
 """
+import re
 import sys
 import threading
 import time
@@ -15,7 +19,7 @@ from . import actions, matcher, page, reading, spelling, watcher
 from .tts import Speaker
 from .util import speech_text, ts
 
-MODE_NAMES = {"all": "朗读+拼写", "reading": "只跑朗读", "spelling": "只跑拼写"}
+MODE_NAMES = {"reading": "朗读", "spelling": "拼写"}
 
 
 def _fmt_item(it):
@@ -45,14 +49,23 @@ class Keyboard:
 
 
 HELP = ("快捷键: r=重读  1/2/3=试听候选  p=点『朗读』  s=点『提交』  n=点『下一题』"
-        "  f=重填当前题  h=帮助  q=退出")
+        "  f=重填当前题  y/n=回答模块切换提示  h=帮助  q=退出")
 
 
-def _handle_keys(kb, d, speaker, state):
-    """state["result"] 是当前题目的匹配结果，给快捷键用"""
+def _handle_keys(kb, d, speaker, state, ctl):
+    """state["result"] 给快捷键用；ctl 处理"是否继续另一个模块"的 y/n"""
     for cmd in kb.drain():
         if cmd == "q":
             raise KeyboardInterrupt
+        if cmd == "y" and ctl.get("pending"):
+            target = ctl.pop("pending")
+            ctl["switch_to"] = target
+            print(f"[{ts()}] 好，切换到{MODE_NAMES[target]}模块")
+            continue
+        if cmd == "n" and ctl.get("pending"):
+            ctl.pop("pending")
+            print(f"[{ts()}] 好，只做当前模块（按 q 退出）")
+            continue
         if cmd == "h":
             print(HELP)
             continue
@@ -87,6 +100,15 @@ def _handle_keys(kb, d, speaker, state):
                     actions.submit_and_next(d)
                 else:
                     print("           没找到输入框/键盘")
+
+
+def _progress_numbers(texts):
+    """从 "75/148" 这种进度文字里取出 (当前, 总数)"""
+    for t in texts:
+        m = re.fullmatch(r"(\d+)\s*/\s*(\d+)", t.strip())
+        if m:
+            return int(m.group(1)), int(m.group(2))
+    return None
 
 
 def _print_result(ranked):
@@ -127,23 +149,27 @@ def _act(d, phase, word, speaker, items):
             print("           READ_BUTTONS / SUBMIT_BUTTONS / NEXT_BUTTONS")
 
 
-def run(d, items, mode="all"):
-    """mode: all=两个阶段都跑 / reading=只跑朗读 / spelling=只跑拼写"""
+def run(d, items, mode="reading", auto_yes=False):
+    """只跑一个模块。mode: reading / spelling"""
+    if mode not in MODE_NAMES:
+        mode = "reading"
     items = matcher.prepare(items)
     speaker = Speaker()
     kb = Keyboard() if (sys.stdin and sys.stdin.isatty()) else None
 
     print("=" * 60)
-    print(f"本次范围: {MODE_NAMES.get(mode, mode)}")
-    print(f"  朗读页: {'自动（点录音→朗读→点波纹→下一题）' if config.AUTO_READING_FLOW else '只提示'}")
-    print(f"  拼写页: {'自动填答（朗读→填入→提交→下一题）' if config.AUTO_FILL_ANSWER else '只提示，自己拼'}")
+    print(f"本次模块: {MODE_NAMES[mode]}" + ("（-y：模块切换自动同意）" if auto_yes else ""))
+    print("  当前模块做完、检测到另一个模块的题时，会问你要不要接着做 [y/N]")
     print(HELP)
     print("=" * 60)
 
     last_sig = None
-    last_key = None              # (阶段, 单词)：已处理过的题，防止同题重复动作
-    state = {"result": None}     # 当前题匹配结果，给快捷键用
+    last_key = None
+    state = {"result": None}
+    ctl = {"pending": None, "switch_to": None}
     heard = []
+    prompted = set()          # 已经提示过的模块，避免刷屏
+    saw_end = False           # 进度到过 N/N
     try:
         while True:
             scr = page.read_screen(d)
@@ -155,6 +181,9 @@ def run(d, items, mode="all"):
 
                 watcher.check(d, scr["texts"])
                 ranked = matcher.rank(scr["texts"], items, topk=8)
+                prog = _progress_numbers(scr["texts"])
+                if prog and prog[1] > 0 and prog[0] >= prog[1]:
+                    saw_end = True
 
                 strong = [r for r in ranked if r["score"] >= 0.9]
                 if len(strong) >= 4:
@@ -167,23 +196,50 @@ def run(d, items, mode="all"):
                     if top and top["score"] >= config.MATCH_MIN_SCORE:
                         phase = actions.classify_phase(scr["texts"], ranked)
                         word = top["item"].get("word", "")
-                        key = (phase, word.lower())
-                        if key != last_key:
-                            last_key = key
-                            _print_result(ranked)
-                            if word and word not in heard:
-                                heard.append(word)
-                            if mode != "all" and phase in ("reading", "spelling") and phase != mode:
-                                other = "拼写" if phase == "spelling" else "朗读"
-                                print(f"           （这是{other}页，本次{MODE_NAMES.get(mode, mode)}，不动它）")
-                            else:
+                        if phase in MODE_NAMES and phase != mode:
+                            # 这是另一个模块的页面 → 当前模块这边没题了
+                            other = MODE_NAMES[phase]
+                            if phase not in prompted:
+                                prompted.add(phase)
+                                if auto_yes:
+                                    print(f"[{ts()}] {MODE_NAMES[mode]}模块这边已经没题了"
+                                          f" → 自动切换到{other}模块")
+                                    mode = phase
+                                    last_key = None
+                                    last_sig = None        # 下一轮重新处理当前页
+                                    continue
+                                if kb:
+                                    ctl["pending"] = phase
+                                    print()
+                                    print(f"[模块] 当前已经是{other}题"
+                                          f"（{MODE_NAMES[mode]}模块应该做完了）。")
+                                    print(f"[模块] 是否接着做{other}模块？[y/N]  "
+                                          f"输 y 回车=继续，输 n 或直接回车=跳过")
+                                    print()
+                                else:
+                                    print(f"[模块] 检测到{other}题，但这是非交互运行，"
+                                          f"只做{MODE_NAMES[mode]}（想自动切换请加 -y）")
+                        else:
+                            key = (phase, word.lower())
+                            if key != last_key:
+                                last_key = key
+                                _print_result(ranked)
+                                if word and word not in heard:
+                                    heard.append(word)
                                 _act(d, phase, word, speaker, items)
-                        # key 相同 = 还是刚才那道题，静默
                     else:
                         _print_result(ranked)
+                        if saw_end:
+                            print(f"[{ts()}] 进度已经到 N/N，这一页没有题目了 → 全部做完，退出。")
+                            break
 
             if kb:
-                _handle_keys(kb, d, speaker, state)
+                _handle_keys(kb, d, speaker, state, ctl)
+                if ctl.get("switch_to"):
+                    mode = ctl.pop("switch_to")
+                    last_key = None
+                    last_sig = None        # 下一轮重新处理当前页
+                    prompted.clear()
             time.sleep(config.POLL_INTERVAL)
     except KeyboardInterrupt:
         pass

@@ -14,15 +14,12 @@ import time
 
 import config
 from . import actions, keyboard
-from .util import fresh_word, progress_text, speech_text, ts
+from .util import fresh_word, progress_text, ts
 
 
 def do_spelling(d, word, speaker, items):
     word = fresh_word(d, items, word)           # 填之前重新识别一遍
     print(f"[{ts()}] 拼写页: 识别到 {word} → 内置键盘敲入 → 确定 → 下一题")
-    if config.SPEAK_IN_SPELLING:
-        speaker.speak(speech_text(word))
-        speaker.wait()
     if not config.AUTO_FILL_ANSWER:
         print("           （自动填答已关：config.AUTO_FILL_ANSWER=False，自己拼）")
         return

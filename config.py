@@ -60,26 +60,18 @@ MATCH_MIN_MARGIN = 0.06   # 第一名比第二名至少高多少，否则提示"
 STOPWORDS = ["的", "了", "地", "得", "使", "让", "某人", "某物", "通常", "常", "等"]
 
 # ---------------- 朗读（TTS） ----------------
-TTS_ENGINE = 'auto'       # auto / piper / sapi / edge / powershell
-                          # auto = Piper(本地神经语音) → SAPI(Zira) → PowerShell
-                          #      Edge 在线语音已被微软停用/限流（403），需要时改成 "edge" 试试
-TTS_RATE = 150            # 语速（单词/分钟），越小越慢（对 SAPI 生效）
-TTS_VOLUME = 1.0          # 音量 0~1（对 SAPI 生效）
-TTS_VOICE_HINT = "zira"   # SAPI 嗓音关键字：zira=女声 david=男声 huihui=中文
-
-# Piper 本地神经语音（离线、稳定、免费；模型约 63MB）
-# 换声音：python -m piper.download_voices en_US-lessac-medium --download-dir data/piper_voices
-#        然后把这里改成对应的 .onnx 路径
-TTS_PIPER_MODEL = "data/piper_voices/en_US-amy-medium.onnx"
-
-# Edge 在线语音（备用，接口常挂；只有 TTS_ENGINE 设成 "edge" 才会用）
-TTS_EDGE_VOICE = "en-US-AriaNeural"
-TTS_EDGE_RATE = "-10%"
+TTS_ENGINE = "auto"       # auto / piper / powershell（auto=Piper，不行才用 PowerShell 兜底）
 TTS_REPEAT = 1            # 每个单词读几遍（提示/试听用）
-TTS_REPEAT_READING = 1    # 朗读页录音时读几遍（读多遍更稳但更慢；脚本保证不超10秒）
+TTS_REPEAT_READING = 1    # 朗读页录音时读几遍（读多遍更稳但更慢；保证不超 10 秒）
 TTS_REPEAT_GAP = 0.9      # 两遍之间隔几秒（只有读多遍时才用得上）
-READ_RECORD_BUDGET = 8.0  # 录音窗口里留给朗读的秒数（录音总长约10秒，留点余量）
 TTS_DEDUP_SECONDS = 6.0   # 同一个词多少秒内不重复朗读（防重复；自动流程里不受此限制）
+
+# Piper 本地神经语音（离线、稳定、免费；每个模型约 60-75MB，放 data/piper_voices/）
+# 下载更多声音：python -m piper.download_voices en_US-lessac-medium --download-dir data/piper_voices
+# 也可以直接用设置页（python main.py ui）选
+TTS_PIPER_MODEL = "data/piper_voices/en_US-amy-medium.onnx"
+TTS_PIPER_LENGTH = 1.0    # 语速：1.0=原速，>1 更慢，<1 更快
+TTS_PIPER_VOLUME = 1.0    # 音量倍数：1.0=原声；想更容易被模拟器麦克风采到可调 1.3~1.8
 
 # ---------------- 朗读发音 ----------------
 # 朗读时的缩写展开（只影响发音，不影响拼写/匹配）。
@@ -98,7 +90,6 @@ SPEECH_EXPAND = {
 AUTO_READING_FLOW = True   # 朗读页：自动点"朗读" → 电脑朗读 → 点"下一题"
 AUTO_FILL_ANSWER = True    # 拼写页：自动把匹配出的单词填进输入框并提交
 AUTO_CLICK_NEXT = True     # 朗读页读完后是否自动点"下一题"
-SPEAK_IN_SPELLING = False  # 拼写环节要不要电脑朗读（默认不读，看着中文直接填）
 
 # 实测到的控件 resource-id（比文字稳，脚本优先按它找；找不到自动退回按文字找）
 ID_RECORD = "iv_record"              # 录音按钮（单词跟读页，点它开始录音）
@@ -112,8 +103,8 @@ RECORD_FRESH_TEXTS = ["点击录音"]
 # 录音被丢弃时自动重录几遍（0=不重录，直接跳过）
 READ_RETRY_TIMES = 1
 
-# 做题范围（设置页可改；run 不带 --mode 时用这个）
-RUN_MODE = "all"           # all=朗读+拼写 / reading=只跑朗读 / spelling=只跑拼写
+# 起始模块（run 不带 --mode 时用这个；跑完会问要不要接着做另一个模块）
+RUN_MODE = "reading"       # reading=先做朗读 / spelling=先做拼写
 
 # 各阶段按钮的文字（对不上就往这里加，脚本按顺序找第一个存在的）
 # "点击录音" 是实测到的朗读页按钮文字；点不到时脚本会去找它旁边的图标点
@@ -133,7 +124,7 @@ NEXT_BUTTON_WAIT = 25.0        # 等评分完成（"点击重录"出现），最
 KEY_CLICK_WAIT = 0.15          # 拼写页用内置键盘打字时，每个字母点击的间隔
 
 # 注意：录音约 10 秒会自动结束（静音会被丢弃）。
-# 所以 TTS_REPEAT × 朗读时长 要控制在 10 秒内，默认 2 遍大约 4 秒，安全。
+# 所以 TTS_REPEAT_READING × 朗读时长 要控制在 10 秒内（默认读 1 遍，安全）。
 
 # ---------------- 弹窗 watcher ----------------
 # 屏幕上出现这些文字的按钮，脚本自动帮你点掉

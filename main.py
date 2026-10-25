@@ -71,9 +71,9 @@ def cmd_run(args):
     items = capture.load()
     print(f"单词表: {len(items)} 个词  ({config.WORDS_FILE})")
     print("示例: " + "；".join(it["word"] for it in items[:5]))
-    mode = args.mode or getattr(config, "RUN_MODE", "all")
+    mode = args.mode or getattr(config, "RUN_MODE", "reading")
     d = device.connect(args.serial)
-    monitor.run(d, items, mode=mode)
+    monitor.run(d, items, mode=mode, auto_yes=args.yes)
 
 
 def cmd_match(args):
@@ -172,10 +172,12 @@ def main():
     sp.add_argument("--no-wait", action="store_true", help="不等待回车，直接开抓")
     sp.set_defaults(func=cmd_capture)
 
-    sp = sub.add_parser("run", help="监听练习页，识别 + 朗读 + 作答")
+    sp = sub.add_parser("run", help="监听练习页，只跑一个模块（朗读 / 拼写）")
     sp.add_argument("--serial", default=None)
-    sp.add_argument("--mode", choices=("all", "reading", "spelling"), default=None,
-                    help="all=朗读+拼写；reading=只跑跟读；spelling=只跑拼写（不填用 config.RUN_MODE）")
+    sp.add_argument("--mode", choices=("reading", "spelling"), default=None,
+                    help="reading=只做朗读；spelling=只做拼写（不填用 config.RUN_MODE）")
+    sp.add_argument("-y", "--yes", action="store_true",
+                    help="模块切换提示自动选 y（apt -y 那样）")
     sp.set_defaults(func=cmd_run)
 
     sp = sub.add_parser("ui", help="打开可视化设置页（本地网页）")

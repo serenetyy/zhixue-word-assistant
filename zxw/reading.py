@@ -29,13 +29,12 @@ def _wait_record_result(d, timeout):
 
 
 def _record_once(d, word, speaker, items, min_repeat=1):
-    """重新识别 → 提前合成音频 → 点录音 → 朗读 → 点波纹结束录音。动作都点到了返回 True"""
+    """重新识别 → 点录音 → 朗读 → 点波纹结束录音。动作都点到了返回 True"""
     word = fresh_word(d, items, word)           # 每次朗读前重新识别，不拿旧词
     spoken = speech_text(word)                  # 缩写展开：sth → something（拼写仍用原词）
     if spoken != word:
         print(f"           （朗读时读作: {spoken}）")
-    speaker.prepare(spoken)
-    repeat = max(min_repeat, speaker.repeat_fit(config.READ_RECORD_BUDGET))
+    repeat = max(min_repeat, config.TTS_REPEAT_READING)
     got = actions.click_control(d, [config.ID_RECORD], config.READ_BUTTONS)
     if not got:
         return False
