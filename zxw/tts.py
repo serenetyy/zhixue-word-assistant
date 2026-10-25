@@ -150,20 +150,39 @@ class Speaker:
 
     # ---------- 内部 ----------
     def _worker(self):
-        # state["edge"] 是当前用的 Edge 嗓音名（None=不用），state["sapi"] 是 SAPI 对象
-        state = {"edge": None, "sapi": None}
+        # state 里放三个引擎的实例（None=这个引擎没启用/没初始化成功）
+        state = {"piper": None, "edge": None, "sapi": None}
         mode = config.TTS_ENGINE
-        if mode in ("auto", "edge"):
-            if self._init_edge():
-                state["edge"] = config.TTS_EDGE_VOICE
-                self._engine_name = "edge"
-                print(f"[TTS] 使用嗓音: {config.TTS_EDGE_VOICE}（Edge 神经网络语音）")
-        if state["edge"] is None and mode in ("auto", "sapi"):
-            state["sapi"] = self._init_sapi()
-            self._engine_name = "sapi"
-        if state["edge"] is None and state["sapi"] is None:
-            self._engine_name = "powershell"
-            print("[TTS] Edge/SAPI 都不可用，用 PowerShell 系统语音朗读")
+        candidates = {
+            "auto": ["piper", "sapi"],
+            "piper": ["piper"],
+            "sapi": ["sapi"],
+            "edge": ["edge", "sapi"],
+            "powershell": [],
+        }.get(mode, ["piper", "sapi"])
+
+        self._engine_name = "powershell"
+        for name in candidates:
+            if name == "piper":
+                voice = self._init_piper()
+                if voice is not None:
+                    state["piper"] = voice
+                    self._engine_name = "piper"
+                    break
+            elif name == "edge":
+                if self._init_edge():
+                    state["edge"] = config.TTS_EDGE_VOICE
+                    self._engine_name = "edge"
+                    print(f"[TTS] 使用嗓音: {config.TTS_EDGE_VOICE}（Edge 神经网络语音）")
+                    break
+            elif name == "sapi":
+                voice = self._init_sapi()
+                if voice is not None:
+                    state["sapi"] = voice
+                    self._engine_name = "sapi"
+                    break
+        if self._engine_name == "powershell":
+            print("[TTS] 用 PowerShell 系统语音朗读")
 
         while True:
             item = self._q.get()
@@ -182,7 +201,14 @@ class Speaker:
                 self._q.task_done()
 
     def _speak_once(self, text, state):
-        """读一遍。Edge 优先，失败当场降级到 SAPI → PowerShell。"""
+        """读一遍。Piper → Edge → SAPI → PowerShell，谁坏了就往下走。"""
+        if state["piper"] is not None:
+            try:
+                self._say_piper(state["piper"], text)
+                return
+            except Exception as e:
+                print(f"[TTS] Piper 朗读失败({e})，降级")
+                state["piper"] = None
         if state["edge"]:
             try:
                 self._say_edge(state["edge"], text)
@@ -190,8 +216,6 @@ class Speaker:
             except Exception as e:
                 print(f"[TTS] Edge 语音失败({e})，本场改用本机嗓音兜底")
                 state["edge"] = None
-                if state["sapi"] is None:
-                    state["sapi"] = self._init_sapi()
         if state["sapi"] is not None:
             try:
                 state["sapi"].Speak(text)
@@ -200,6 +224,41 @@ class Speaker:
                 print(f"[TTS] SAPI 朗读失败({e})，改用 PowerShell")
                 state["sapi"] = None
         self._say_powershell(text)
+
+    def _init_piper(self):
+        """加载本地 Piper 神经语音模型"""
+        try:
+            from pathlib import Path
+
+            from piper import PiperVoice
+        except Exception as e:
+            print(f"[TTS] Piper 不可用: {e}")
+            return None
+        try:
+            path = Path(config.TTS_PIPER_MODEL)
+            if not path.is_absolute():
+                path = Path(config.ROOT) / path
+            if not path.exists():
+                print(f"[TTS] Piper 模型不存在: {path}")
+                return None
+            t0 = time.time()
+            voice = PiperVoice.load(str(path))
+            print(f"[TTS] 使用嗓音: Piper {path.stem}（本地神经语音，"
+                  f"加载 {time.time() - t0:.1f}s）")
+            return voice
+        except Exception as e:
+            print(f"[TTS] Piper 初始化失败: {e}")
+            return None
+
+    def _say_piper(self, voice, text):
+        import wave
+
+        import winsound
+
+        path = os.path.join(tempfile.gettempdir(), "zxw_piper.wav")
+        with wave.open(path, "wb") as wf:
+            voice.synthesize_wav(text, wf)
+        winsound.PlaySound(path, winsound.SND_FILENAME)   # 阻塞到播完
 
     def _init_edge(self):
         """验证 Edge 语音可用（会真合成一小段，不出声）"""

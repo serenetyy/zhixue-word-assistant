@@ -60,16 +60,21 @@ MATCH_MIN_MARGIN = 0.06   # 第一名比第二名至少高多少，否则提示"
 STOPWORDS = ["的", "了", "地", "得", "使", "让", "某人", "某物", "通常", "常", "等"]
 
 # ---------------- 朗读（TTS） ----------------
-TTS_ENGINE = "auto"       # auto / edge / sapi / powershell
-                          # auto = 先试 Edge 神经网络语音（更清晰，需联网）→ SAPI(Zira) → PowerShell
+TTS_ENGINE = "auto"       # auto / piper / sapi / edge / powershell
+                          # auto = Piper(本地神经语音) → SAPI(Zira) → PowerShell
+                          #      Edge 在线语音已被微软停用/限流（403），需要时改成 "edge" 试试
 TTS_RATE = 150            # 语速（单词/分钟），越小越慢（对 SAPI 生效）
 TTS_VOLUME = 1.0          # 音量 0~1（对 SAPI 生效）
 TTS_VOICE_HINT = "zira"   # SAPI 嗓音关键字：zira=女声 david=男声 huihui=中文
 
-# Edge 神经网络语音（更清晰，需要联网）
-TTS_EDGE_VOICE = "en-US-AriaNeural"   # 女声备选：en-US-JennyNeural / en-US-MichelleNeural
-                                      # 英音女声：en-GB-SoniaNeural / en-GB-LibbyNeural
-TTS_EDGE_RATE = "-10%"                # 语速（edge 格式）："-20%" 更慢，"+0%" 原速
+# Piper 本地神经语音（离线、稳定、免费；模型约 63MB）
+# 换声音：python -m piper.download_voices en_US-lessac-medium --download-dir data/piper_voices
+#        然后把这里改成对应的 .onnx 路径
+TTS_PIPER_MODEL = "data/piper_voices/en_US-amy-medium.onnx"
+
+# Edge 在线语音（备用，接口常挂；只有 TTS_ENGINE 设成 "edge" 才会用）
+TTS_EDGE_VOICE = "en-US-AriaNeural"
+TTS_EDGE_RATE = "-10%"
 TTS_REPEAT = 1            # 每个单词读几遍（提示/试听用）
 TTS_REPEAT_READING = 1    # 朗读页录音时读几遍（读多遍更稳但更慢；脚本保证不超10秒）
 TTS_REPEAT_GAP = 0.9      # 两遍之间隔几秒（只有读多遍时才用得上）

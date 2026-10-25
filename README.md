@@ -2,7 +2,7 @@
 
 在电脑上盯着模拟器里的智学网单词练习：**认词 → 电脑朗读 → 自动作答**。
 
-- **朗读页（单词跟读）**：自动点「点击录音」→ 等 0.5 秒 → 电脑用 Edge 神经女声朗读（默认 1 遍）
+- **朗读页（单词跟读）**：自动点「点击录音」→ 等 0.5 秒 → 电脑用本地 Piper 神经女声朗读（默认 1 遍）
   → 点「波纹」结束录音 → 等评测（没通过会自动重录一次，重录时读 2 遍更稳）→ 点「下一题」。
   单题约 10 秒；读多遍可以在 `config.py` 把 `TTS_REPEAT_READING` 改为 2 或 3。
 - **拼写页**：从中文释义模糊匹配出单词 → 用 App 自绘键盘逐字母敲入
@@ -37,7 +37,7 @@ zhixuewang/
 │   ├── spelling.py      拼写流程 —— 和朗读完全分开
 │   ├── keyboard.py      拼写页自绘键盘的按键坐标（实测值）
 │   ├── util.py          两个流程共用的小工具
-│   ├── tts.py           电脑朗读（Edge 神经语音 → SAPI → PowerShell 自动降级）
+│   ├── tts.py           电脑朗读（Piper 本地神经语音 → SAPI → PowerShell 自动降级；Edge 可选）
 │   ├── watcher.py       弹窗处理
 │   └── monitor.py       主循环：盯屏 → 认词 → 分发给两个流程
 ├── tests/test_matcher.py  不连设备也能跑的自测
@@ -53,7 +53,7 @@ python -m venv .venv
 ```
 
 adb 已经配好（`config.py` 里指向 `D:\AndroidSDK\platform-tools\adb.exe`）。
-朗读默认用 Edge 神经语音（需要联网；断网会自动退回本机 Zira，不影响使用）。
+朗读默认用**本地 Piper 神经语音**（离线、不需要联网，模型在 `data/piper_voices/`，已被 git 忽略）。
 
 ## 每轮使用流程
 
@@ -116,8 +116,8 @@ REM    .venv\Scripts\python main.py run --mode spelling   只自动做拼写题
 | `POLL_INTERVAL` / `PAGE_SETTLE` | 2.0 / 1.2 | 看屏频率、页面稳定等待 |
 | `TTS_RATE` / `TTS_REPEAT_READING` | 150 / 1 | 语速、跟读录音读几遍（想更稳改 2；脚本保证不超 10 秒） |
 | `TTS_VOICE_HINT` | zira | 本机(SAPI)嗓音关键字：`zira`（女声）/ `david`（男声）/ `huihui`（中文） |
-| `TTS_EDGE_VOICE` | en-US-AriaNeural | Edge 神经女声；可换 `en-US-JennyNeural`、`en-GB-SoniaNeural` 等 |
-| `TTS_ENGINE` | auto | `auto`=Edge→SAPI→PowerShell 自动挑；固定 `sapi` 则只用本机 Zira（不需联网） |
+| `TTS_ENGINE` | auto | `auto`=Piper→SAPI→PowerShell 自动挑；也可固定 `piper` / `sapi`；`edge` 需联网且接口常挂 |
+| `TTS_PIPER_MODEL` | en_US-amy-medium.onnx | 本地神经语音模型，换声音就换这个文件 |
 | `NOISE_PACKAGES` / `NOISE_REGEXES` | systemui… | 状态栏噪音过滤规则 |
 | `AUTO_CLICK_TEXTS` | 知道了… | 自动点掉的弹窗按钮 |
 
@@ -148,12 +148,12 @@ REM    .venv\Scripts\python main.py run --mode spelling   只自动做拼写题
 模拟器要先进到系统桌面；真机要在弹窗里点"允许 USB 调试"。
 都没有设备时脚本会自己试常见模拟器端口（MuMu 7555、雷电 5555、夜神 62001）。
 
-**没声音 / 评测老不过 / 想换嗓音**
-默认用 Edge 神经女声 `en-US-AriaNeural`（清晰度最好，需联网；断网会自动退回本机 Zira）。
-`.venv\Scripts\python main.py speak apple` 试音；`python main.py voices` 列出全部可选嗓音
-（本机 + Edge 在线）。想换：填 `TTS_EDGE_VOICE`（如 `en-US-JennyNeural`）；
-想完全用本机、不联网：把 `TTS_ENGINE` 改成 `sapi`。评测老不过一般是读音不够清晰，
-还可以把 `TTS_RATE`（SAPI）或 `TTS_EDGE_RATE`（如 `-15%`）调慢一点。
+**没声音 / 想换嗓音**
+默认用本地 Piper 神经女声（`en_US-amy-medium`，离线、不需要联网，单题朗读很稳）。
+`.venv\Scripts\python main.py speak apple` 试音；`python main.py voices` 列出本机嗓音。
+换本地女声：`python -m piper.download_voices en_US-lessac-medium --download-dir data\piper_voices`
+再把 `config.py` 的 `TTS_PIPER_MODEL` 指向新的 .onnx。
+Edge 在线语音已被微软限流（403），默认不再使用；想试就把 `TTS_ENGINE` 改成 `"edge"`。
 
 **匹配不准 / 老提示"有歧义"**
 `python main.py match "那段中文"` 复现，看 top 几名得分差多少再调 `MATCH_MIN_SCORE`；
