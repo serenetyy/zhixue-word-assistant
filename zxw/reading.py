@@ -24,7 +24,7 @@ def _wait_record_result(d, timeout):
                 return "discarded"
         else:
             fresh_seen = 0
-        time.sleep(0.6)
+        time.sleep(0.4)
     return None
 
 
@@ -86,7 +86,7 @@ def do_reading(d, word, speaker, items):
         if not got2:
             print("           未找到「下一题」，请手动点击。")
             return
-        time.sleep(1.3)
+        time.sleep(0.8)
         after = progress_text(d)
         if after and after != before:
             print(f"           已翻到 {after}"

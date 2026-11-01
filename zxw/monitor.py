@@ -173,8 +173,10 @@ def run(d, items, mode="reading", auto_yes=False):
     heard = []
     prompted = set()          # 已提示过的模块，避免重复
     saw_end = False           # 进度是否到达 N/N
+    acted = False             # 本轮是否自动操作过（答完题后用快速轮询）
     try:
         while True:
+            acted = False
             if ctl["paused"]:
                 if kb:
                     _handle_keys(kb, d, speaker, state, ctl, mode, items)
@@ -238,6 +240,7 @@ def run(d, items, mode="reading", auto_yes=False):
                                 if word and word not in heard:
                                     heard.append(word)
                                 _act(d, phase, word, get_speaker, items)
+                                acted = True
                     else:
                         _print_result(ranked)
                         if saw_end:
@@ -246,7 +249,7 @@ def run(d, items, mode="reading", auto_yes=False):
 
             if kb:
                 _handle_keys(kb, d, speaker, state, ctl, mode, items)
-            time.sleep(config.POLL_INTERVAL)
+            time.sleep(config.FAST_POLL_INTERVAL if acted else config.POLL_INTERVAL)
     except KeyboardInterrupt:
         pass
     finally:

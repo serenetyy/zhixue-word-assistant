@@ -9,10 +9,12 @@
 键盘布局：qwertyuiop / asdfghjkl / ⇧zxcvbnm⌫ / 123?/!' － 清空
 """
 import time
+import xml.etree.ElementTree as ET
 
 import config
 
 _TEXT = "ky_keyboard"          # 键盘容器的 resource-id 后缀
+_SLOTS = "word_view"           # 字母格子容器的 resource-id 后缀
 
 # 每行的 y 比例（4 行均分）
 _ROW_Y = {1: 0.125, 2: 0.375, 3: 0.625, 4: 0.875}
@@ -79,14 +81,50 @@ def tap_key(d, label):
     return rect is not None and _tap(d, rect, label)
 
 
-def type_word(d, word):
+def slots_from_xml(xml):
+    """数出拼写页字母格子的数量（找不到返回 0）。可用来校验词长。"""
+    try:
+        root = ET.fromstring(xml)
+    except ET.ParseError:
+        return 0
+    for node in root.iter():
+        if (node.get("resource-id") or "").endswith(_SLOTS):
+            return sum(1 for child in node.iter() if child.get("clickable") == "true")
+    return 0
+
+
+def read_slots(d):
+    """读取字母格里当前填入的内容（按顺序拼起来）。读不到返回 None。"""
+    try:
+        xml = d.dump_hierarchy()
+        root = ET.fromstring(xml)
+    except Exception:
+        return None
+    for node in root.iter():
+        if (node.get("resource-id") or "").endswith(_SLOTS):
+            letters = []
+            for child in node.iter():
+                if child is node:
+                    continue
+                t = (child.get("text") or "").strip()
+                if t and child.get("clickable") == "true":
+                    letters.append(t)
+            return "".join(letters)
+    return None
+
+
+def type_word(d, word, clear_first=False):
     """按字母逐个点，把单词敲进去。有打不出的字符返回 False。
 
+    clear_first=True 时先点一次「清空」（只取一次键盘位置，省一次查找）。
     词组里的空格直接忽略（"dig up" 就敲 digup，实测这样没问题）。
     """
     rect = _keyboard_rect(d)
     if rect is None:
         return False
+    if clear_first:
+        _tap(d, rect, "clear")
+        time.sleep(0.12)
     said_space = False
     for ch in str(word).lower():
         if ch.isalpha() and ch in _KEYS:

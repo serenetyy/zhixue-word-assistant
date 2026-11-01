@@ -24,8 +24,9 @@ EMULATOR = 'auto'
 DEVICE_SERIAL = ''
 
 # ---------------- 屏幕监听 ----------------
-POLL_INTERVAL = 2.0          # 每隔几秒看一眼屏幕
-PAGE_SETTLE = 1.2            # 页面变化后先等几秒（等动画/加载稳定）再识别
+POLL_INTERVAL = 2.0          # 空闲时每隔几秒看一眼屏幕
+FAST_POLL_INTERVAL = 0.3     # 刚答完一题后的快速轮询间隔（让连续作答更流畅）
+PAGE_SETTLE = 0.8            # 页面变化后先等几秒（等动画/加载稳定）再识别
 CAPTURE_SCROLL_WAIT = 0.9    # 抓列表时，每次滑动后等几秒
 CAPTURE_MAX_SCROLLS = 80     # 抓列表时最多滑多少屏
 
@@ -57,9 +58,9 @@ NOISE_REGEXES = [
 ]
 
 # ---------------- 模糊匹配 ----------------
-MATCH_MIN_SCORE = 0.55    # 得分达到多少才认为"认出来了"（0~1）
+MATCH_MIN_SCORE = 0.5    # 得分达到多少才认为"认出来了"（0~1）
 MATCH_LOW_SCORE = 0.35    # 低于 MIN 但高于 LOW：只提示不动作，让你自己判断
-MATCH_MIN_MARGIN = 0.06   # 第一名比第二名至少高多少，否则提示"有歧义"
+MATCH_MIN_MARGIN = 0.05   # 第一名比第二名至少高多少，否则提示"有歧义"
 # 分词时忽略的虚词，不参与匹配
 STOPWORDS = ["的", "了", "地", "得", "使", "让", "某人", "某物", "通常", "常", "等"]
 
@@ -74,7 +75,7 @@ TTS_DEDUP_SECONDS = 6.0   # 同一个词多少秒内不重复朗读（防重复�
 # 下载更多声音：python -m piper.download_voices en_US-lessac-medium --download-dir data/piper_voices
 # 也可以直接用设置页（python main.py ui）选
 TTS_PIPER_MODEL = 'data/piper_voices/en_US-amy-medium.onnx'
-TTS_PIPER_LENGTH = 0.9    # 语速：1.0=原速，>1 更慢，<1 更快
+TTS_PIPER_LENGTH = 1.0    # 语速：1.0=原速，>1 更慢，<1 更快
 TTS_PIPER_VOLUME = 1.2    # 音量倍数：1.0=原声；想更容易被模拟器麦克风采到可调 1.3~1.8
 
 # ---------------- 朗读发音 ----------------
@@ -121,11 +122,11 @@ INPUT_HINTS = ["请输入", "输入单词", "点击输入", "填写", "作答"]
 # 各步骤之间的等待（秒），模拟器卡就调大
 READ_AFTER_CLICK_WAIT = 0.5    # 点了"点击录音"后等多久电脑再出声（先让它进录音状态）
 READ_AFTER_SPEAK_WAIT = 0.8    # 读完到"点波纹结束录音"之间
-AFTER_FILL_WAIT = 0.4          # 填完答案到点"提交"
-AFTER_SUBMIT_WAIT = 0.8        # 提交完到点"下一题"
+AFTER_FILL_WAIT = 0.25         # 填完答案到点"提交"
+AFTER_SUBMIT_WAIT = 0.5        # 提交完到点"下一题"
 AFTER_STOP_WAIT = 0.5          # 点完波纹后歇一下再等评分
 NEXT_BUTTON_WAIT = 20.0        # 等评分完成（"点击重录"出现），最多等几秒
-KEY_CLICK_WAIT = 0.15          # 拼写页用内置键盘打字时，每个字母点击的间隔
+KEY_CLICK_WAIT = 0.1           # 拼写页内置键盘每个字母的点击间隔（输入后会自动校验，错了重输）
 
 # 注意：录音约 10 秒会自动结束（静音会被丢弃）。
 # 所以 TTS_REPEAT_READING × 朗读时长 要控制在 10 秒内（默认读 1 遍，安全）。
