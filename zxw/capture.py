@@ -115,7 +115,19 @@ def load():
 
 
 def save(items):
+    """保存词表。空结果不覆盖原有文件（防止一次误抓把词表清空）。"""
+    if not items:
+        print("\n[失败] 本次未识别到任何单词，原单词表保持不变。")
+        print("       请检查：① 模拟器已解锁并停在【单词列表】页；")
+        print("       ② 连接的是正确的设备（可运行 python main.py probe 查看当前屏幕）。")
+        return False
     config.DATA_DIR.mkdir(parents=True, exist_ok=True)
+    if config.WORDS_FILE.exists():
+        try:    # 覆盖前备份上一份词表
+            config.WORDS_FILE.with_suffix(".json.bak").write_text(
+                config.WORDS_FILE.read_text(encoding="utf-8"), encoding="utf-8")
+        except Exception:
+            pass
     data = {
         "captured_at": time.strftime("%Y-%m-%d %H:%M:%S"),
         "count": len(items),
@@ -125,6 +137,7 @@ def save(items):
         json.dumps(data, ensure_ascii=False, indent=2), encoding="utf-8"
     )
     print(f"\n已保存 {len(items)} 个词 → {config.WORDS_FILE}")
+    return True
 
 
 def capture(d, interactive=True):
@@ -165,13 +178,18 @@ def capture(d, interactive=True):
         print(f"  第 {idx:2d} 屏: 新识别 {new} 个词（累计 {len(items)}）")
 
         empty_rounds = empty_rounds + 1 if new == 0 else 0
-        if scr["sig"] == last_sig or empty_rounds >= 2 or len(scr["texts"]) < 3:
+        if scr["sig"] == last_sig or empty_rounds >= 2:
+            break
+        if len(scr["texts"]) < 3:
+            print("   [提示] 当前屏幕没有可读文字：请确认模拟器已解锁、停在单词列表页，"
+                  "并检查连接的是否为正确的设备。")
             break
         last_sig = scr["sig"]
         page.swipe_up(d)
         time.sleep(config.CAPTURE_SCROLL_WAIT)
 
-    save(items)
+    if not save(items):
+        return items
 
     no_cn = [it["word"] for it in items if not it["cn"]]
     print("\n预览（前 8 个）:")
