@@ -109,7 +109,14 @@ def pick_serial(serial=None):
     devs = adb_devices()
     ready = [s for s, st in devs if st == "device"]
     if ready:
-        return ready[0]
+        # 多台设备时优先模拟器（emulator-xxxx 或 127.0.0.1:端口），避免连到插着的真机
+        emulators = [s for s in ready
+                     if s.startswith("emulator-") or s.startswith("127.0.0.1:")]
+        chosen = emulators[0] if emulators else ready[0]
+        if len(ready) > 1:
+            print(f"[连接] 检测到多台设备：{'、'.join(ready)}；已选择 {chosen}")
+            print("       如需指定其他设备，请在设置页选择对应模拟器或填写自定义串号。")
+        return chosen
     if any(st == "unauthorized" for _, st in devs):
         raise RuntimeError(
             "设备显示 unauthorized：请在模拟器/手机的弹窗里点『允许 USB 调试』，然后重试。"
