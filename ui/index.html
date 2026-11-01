@@ -132,6 +132,45 @@
   </section>
 
   <section class="card">
+    <h2>速度与等待（秒）</h2>
+    <div class="row">
+      <label class="k">空闲轮询</label>
+      <input type="number" id="POLL_INTERVAL" min="0.5" max="5" step="0.1" style="width:80px">
+      <span class="hint">页面没有变化时，隔多久看一次屏幕</span>
+    </div>
+    <div class="row">
+      <label class="k">答完快速轮询</label>
+      <input type="number" id="FAST_POLL_INTERVAL" min="0.1" max="2" step="0.05" style="width:80px">
+      <span class="hint">答完一题后加速轮询的间隔</span>
+    </div>
+    <div class="row">
+      <label class="k">页面稳定等待</label>
+      <input type="number" id="PAGE_SETTLE" min="0.2" max="3" step="0.1" style="width:80px">
+      <span class="hint">页面变化后等多久再识别</span>
+    </div>
+    <div class="row">
+      <label class="k">键盘按键间隔</label>
+      <input type="number" id="KEY_CLICK_WAIT" min="0.05" max="0.5" step="0.01" style="width:80px">
+      <span class="hint">拼写页每个字母的点击间隔（有输入校验兜底）</span>
+    </div>
+    <div class="row">
+      <label class="k">填完到提交</label>
+      <input type="number" id="AFTER_FILL_WAIT" min="0.1" max="2" step="0.05" style="width:80px">
+      <span class="hint">秒</span>
+    </div>
+    <div class="row">
+      <label class="k">提交到下一题</label>
+      <input type="number" id="AFTER_SUBMIT_WAIT" min="0.1" max="3" step="0.1" style="width:80px">
+      <span class="hint">秒</span>
+    </div>
+    <div class="row">
+      <label class="k">点波纹后等待</label>
+      <input type="number" id="AFTER_STOP_WAIT" min="0.1" max="2" step="0.1" style="width:80px">
+      <span class="hint">秒，再等评分结果</span>
+    </div>
+  </section>
+
+  <section class="card">
     <h2>匹配</h2>
     <div class="row">
       <label class="k">认词阈值</label>
@@ -230,6 +269,13 @@ async function load() {
   setVal("READ_AFTER_CLICK_WAIT", cfg.READ_AFTER_CLICK_WAIT);
   setVal("READ_AFTER_SPEAK_WAIT", cfg.READ_AFTER_SPEAK_WAIT);
   setVal("NEXT_BUTTON_WAIT", cfg.NEXT_BUTTON_WAIT);
+  setVal("POLL_INTERVAL", cfg.POLL_INTERVAL);
+  setVal("FAST_POLL_INTERVAL", cfg.FAST_POLL_INTERVAL);
+  setVal("PAGE_SETTLE", cfg.PAGE_SETTLE);
+  setVal("KEY_CLICK_WAIT", cfg.KEY_CLICK_WAIT);
+  setVal("AFTER_FILL_WAIT", cfg.AFTER_FILL_WAIT);
+  setVal("AFTER_SUBMIT_WAIT", cfg.AFTER_SUBMIT_WAIT);
+  setVal("AFTER_STOP_WAIT", cfg.AFTER_STOP_WAIT);
   setRange("MATCH_MIN_SCORE", cfg.MATCH_MIN_SCORE, f2);
   setRange("MATCH_MIN_MARGIN", cfg.MATCH_MIN_MARGIN, f2);
 }
@@ -255,6 +301,13 @@ function collect() {
     READ_AFTER_CLICK_WAIT: Number($("READ_AFTER_CLICK_WAIT").value),
     READ_AFTER_SPEAK_WAIT: Number($("READ_AFTER_SPEAK_WAIT").value),
     NEXT_BUTTON_WAIT: Number($("NEXT_BUTTON_WAIT").value),
+    POLL_INTERVAL: Number($("POLL_INTERVAL").value),
+    FAST_POLL_INTERVAL: Number($("FAST_POLL_INTERVAL").value),
+    PAGE_SETTLE: Number($("PAGE_SETTLE").value),
+    KEY_CLICK_WAIT: Number($("KEY_CLICK_WAIT").value),
+    AFTER_FILL_WAIT: Number($("AFTER_FILL_WAIT").value),
+    AFTER_SUBMIT_WAIT: Number($("AFTER_SUBMIT_WAIT").value),
+    AFTER_STOP_WAIT: Number($("AFTER_STOP_WAIT").value),
     MATCH_MIN_SCORE: Number($("MATCH_MIN_SCORE").value),
     MATCH_MIN_MARGIN: Number($("MATCH_MIN_MARGIN").value),
   };
