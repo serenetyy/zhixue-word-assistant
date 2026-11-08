@@ -105,14 +105,17 @@ def do_spelling(d, word, items):
     typed = keyboard.read_slots(d)
     if typed is None:
         print("           （无法读取字母格内容，跳过输入校验）")
-    elif typed.lower() != expected:
+    elif typed.lower() == expected:
+        print("           输入校验通过。")
+    else:
         print(f"           输入校验不一致（{typed!r}），重输一次。")
-        keyboard.type_word(d, word, clear_first=True)
+        keyboard.type_word(d, word, clear_first=True, keep_punct=use_punct)
         typed2 = keyboard.read_slots(d)
         if typed2 is not None and typed2.lower() != expected:
-            print(f"           [注意] 重输后仍不一致（{typed2!r}），请手动检查。")
-    else:
-        print("           输入校验通过。")
+            # 明知道填错了就别提交，免得白丢一题；交给用户手动改
+            print(f"           [注意] 重输后仍不一致（{typed2!r}），"
+                  f"已停止提交，请手动修正后点「确定」。")
+            return
 
     print(f"           已输入 {word}，正在提交。")
     time.sleep(config.AFTER_FILL_WAIT)
