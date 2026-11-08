@@ -23,30 +23,48 @@ def _letters(s):
     return re.sub(r"[^a-z]", "", str(s).lower())
 
 
-def _refine_word(texts, items, word, slot_count):
-    """用字母格数量做一次安全的选词校正。
+def _letters_with_punct(s):
+    """字母 + 撇号/连字符（这两种字符键盘上也有键，可能占一格）"""
+    return re.sub(r"[^a-z'\-]", "", str(s).lower())
 
-    只在前几名里存在"字数吻合"的候选、且与第一名得分接近时，才替换。
-    （词组带空格时格子数可能不等于字母数，所以不做硬过滤）
+
+def _slot_matches(word, slot_count):
+    """单词长度是否和页面的字母格数吻合。
+
+    正常情况按字母数算；词组里的撇号/连字符如果也占格，按带标点的长度算
+    （键盘上只有字母、' 和 -，空格不占格）。
     """
-    if not texts or slot_count < 2:
+    plain = _letters(word)
+    if len(plain) == slot_count:
+        return True
+    full = _letters_with_punct(word)
+    return len(full) == slot_count and len(full) > len(plain)
+
+
+def _refine_word(texts, items, word, slot_count):
+    """用字母格数量做选词校正。
+
+    字母格数是页面给的硬线索（几个字母就几个格），比模糊得分可靠：
+    第一名跟格子数不符时，只要候选里有"等长且达到阈值"的词，就换过去。
+    """
+    if not texts:
         return word
-    ranked = matcher.rank(texts, items, topk=3)
+    ranked = matcher.rank(texts, items, topk=10)
     if not ranked:
         return word
     top = ranked[0]
-    if len(_letters(top["item"].get("word", ""))) == slot_count:
-        return top["item"].get("word", word)
+    top_word = top["item"].get("word", "")
+    if slot_count < 2 or _slot_matches(top_word, slot_count):
+        return top_word or word
     same = [r for r in ranked[1:]
-            if len(_letters(r["item"].get("word", ""))) == slot_count]
-    if (len(same) == 1
-            and same[0]["score"] >= config.MATCH_MIN_SCORE
-            and top["score"] - same[0]["score"] <= 0.15):
-        better = same[0]["item"].get("word", "")
-        print(f"           按字母格数（{slot_count}）校正："
-              f"{top['item'].get('word')} → {better}")
-        return better
-    return word
+            if _slot_matches(r["item"].get("word", ""), slot_count)
+            and r["score"] >= config.MATCH_MIN_SCORE]
+    if not same:
+        return top_word or word
+    better = max(same, key=lambda r: r["score"])["item"].get("word", "")
+    if better and better.lower() != top_word.lower():
+        print(f"           按字母格数（{slot_count}）校正：{top_word} → {better}")
+    return better or top_word or word
 
 
 def do_spelling(d, word, items):
@@ -66,13 +84,24 @@ def do_spelling(d, word, items):
         print("           （自动填答未启用：config.AUTO_FILL_ANSWER=False，请手动拼写。）")
         return
 
+    # 2.5) 兜底：长度和格子数对不上时，填了也一定是错的，不如不填
+    if slot_count >= 2 and not _slot_matches(word, slot_count):
+        print(f"           [注意] 「{word}」与页面字母格（{slot_count} 格）对不上，"
+              f"为避免答错，本题不自动填写。")
+        print("           多半是词表和这一轮的题目不一致：模拟器停在【单词列表】页后，"
+              "回到菜单用 [1] 重新抓取单词表。")
+        return
+
     # 3) 一次取键盘位置：先清空再逐字母输入
-    if not keyboard.type_word(d, word, clear_first=True):
+    plain = _letters(word)
+    full = _letters_with_punct(word)
+    use_punct = slot_count >= 2 and len(full) > len(plain) and len(full) == slot_count
+    if not keyboard.type_word(d, word, clear_first=True, keep_punct=use_punct):
         print("           [注意] 未找到拼写键盘（ky_keyboard），请手动输入。")
         return
 
     # 4) 读回字母格校验；不一致自动重输一次
-    expected = _letters(word)
+    expected = full if use_punct else plain
     typed = keyboard.read_slots(d)
     if typed is None:
         print("           （无法读取字母格内容，跳过输入校验）")

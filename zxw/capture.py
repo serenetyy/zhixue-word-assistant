@@ -28,6 +28,16 @@ def has_chinese(s):
     return bool(re.search(r"[一-鿿]", s))
 
 
+def is_ui_text(s):
+    """这一行是不是 App 的按钮/提示文字（不能拿来当释义）
+
+    实测坑：单词在屏幕最底部、释义被滚出屏幕时，后面紧跟着页面的
+    「开始作答」按钮。以前会把它当成这个单词的释义，而且因为字段
+    非空，后面真正抓到释义也补不上来。
+    """
+    return s.strip() in config.IGNORE_TEXTS
+
+
 def ipa_count(s):
     return sum(1 for c in s if c in _IPA_CHARS)
 
@@ -70,6 +80,8 @@ def split_line(t):
     mc = re.search(r"[一-鿿].*", t)
     if mc:
         cn = re.sub(r"\s{2,}", " ", mc.group(0)).strip()
+        if is_ui_text(cn):
+            cn = ""      # 按钮/提示文字不是释义
 
     # 整行是个纯单词时，别把单词本身误当成中文/音标
     return word, ph, cn
@@ -98,6 +110,38 @@ def parse_items(texts):
         items.append({"word": word, "phonetic": ph, "cn": cn})
         i = j
     return items
+
+
+def _merge_item(old, new):
+    """把同一个词在另一屏的信息补进来。
+
+    坑：旧值是 UI 按钮文字（比如「开始作答」）时要允许覆盖 ——
+    否则一次误判会把后面真正的释义永久挡住。
+    """
+    for f in ("phonetic", "cn"):
+        cur = (old.get(f) or "").strip()
+        if new.get(f) and (not cur or is_ui_text(cur)):
+            old[f] = new[f]
+
+
+def merge_screens(screens):
+    """按顺序合并多屏解析结果（按单词去重，缺的字段从后面的屏补）"""
+    items, by_word = [], {}
+    for texts in screens:
+        for it in parse_items(texts):
+            key = it["word"].lower()
+            if key in by_word:
+                _merge_item(by_word[key], it)
+                continue
+            by_word[key] = it
+            items.append(it)
+    return items
+
+
+def load_raw_screens():
+    """读取上次抓取留下的原始屏幕文字（按序号排序）"""
+    files = sorted(config.RAW_DIR.glob("screen_*.txt"))
+    return [f.read_text(encoding="utf-8").splitlines() for f in files]
 
 
 def load():
@@ -166,10 +210,7 @@ def capture(d, interactive=True):
             key = it["word"].lower()
             if key in by_word:
                 # 同一个词之前出现过但不完整，补全它
-                old = by_word[key]
-                for f in ("phonetic", "cn"):
-                    if not old[f] and it[f]:
-                        old[f] = it[f]
+                _merge_item(by_word[key], it)
                 continue
             by_word[key] = it
             items.append(it)

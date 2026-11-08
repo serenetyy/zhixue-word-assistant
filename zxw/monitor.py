@@ -15,7 +15,7 @@ import threading
 import time
 
 import config
-from . import actions, matcher, page, reading, spelling, watcher
+from . import actions, keyboard, matcher, page, reading, spelling, watcher
 from .tts import Speaker
 from .util import speech_text, ts
 
@@ -100,10 +100,14 @@ def _progress_numbers(texts):
     return None
 
 
-def _print_result(ranked):
+def _print_result(ranked, slot_count=0):
     """打印匹配结果，返回是否达到可信阈值（>= MATCH_MIN_SCORE）"""
     if not ranked or ranked[0]["score"] < config.MATCH_LOW_SCORE:
-        print(f"[{ts()}] 页面已变化，未匹配到单词（普通页面或提示页，忽略）。")
+        if slot_count >= 2:
+            print(f"[{ts()}] [拼写页] 题面没匹配到词表里的单词（页面有 {slot_count} 个字母格）。")
+            print("           本题不会自动作答。若词表不是这一轮的，请回到【单词列表】页重新用 [1] 抓取。")
+        else:
+            print(f"[{ts()}] 页面已变化，未匹配到单词（普通页面或提示页，忽略）。")
         return False
 
     top = ranked[0]
@@ -120,6 +124,8 @@ def _print_result(ranked):
 
     print(f"[{ts()}] 置信度不足，候选：" + "；".join(
         f"{r['item']['word']}({r['score']:.2f})" for r in ranked[:3]))
+    if slot_count >= 2:
+        print(f"           页面有 {slot_count} 个字母格；本题不会自动作答。")
     print("           得分不足，不会自动操作；按 h 查看可用操作。")
     return False
 
@@ -192,6 +198,7 @@ def run(d, items, mode="reading", auto_yes=False):
 
                 watcher.check(d, scr["texts"])
                 ranked = matcher.rank(scr["texts"], items, topk=8)
+                slots = keyboard.slots_from_xml(scr["xml"])
                 prog = _progress_numbers(scr["texts"])
                 if prog and prog[1] > 0 and prog[0] >= prog[1]:
                     saw_end = True
@@ -236,13 +243,13 @@ def run(d, items, mode="reading", auto_yes=False):
                             key = (phase, word.lower())
                             if key != last_key:
                                 last_key = key
-                                _print_result(ranked)
+                                _print_result(ranked, slots)
                                 if word and word not in heard:
                                     heard.append(word)
                                 _act(d, phase, word, get_speaker, items)
                                 acted = True
                     else:
-                        _print_result(ranked)
+                        _print_result(ranked, slots)
                         if saw_end:
                             print(f"[{ts()}] 进度已到 N/N，当前页面无题目：本次运行结束。")
                             break

@@ -61,6 +61,15 @@ def cmd_probe(args):
 def cmd_capture(args):
     from zxw import capture, device
 
+    if getattr(args, "from_raw", False):
+        # 不连设备：用上次抓取留下的原始屏幕重新解析（修词表用）
+        screens = capture.load_raw_screens()
+        if not screens:
+            fail(f"没找到原始屏幕记录（{config.RAW_DIR}），请先正常抓取一次。")
+        print(f"用上次的 {len(screens)} 屏原始记录重新解析...")
+        capture.save(capture.merge_screens(screens))
+        return
+
     d = device.connect(args.serial)
     capture.capture(d, interactive=not args.no_wait)
 
@@ -170,6 +179,8 @@ def main():
     sp = sub.add_parser("capture", help="抓取单词列表")
     sp.add_argument("--serial", default=None)
     sp.add_argument("--no-wait", action="store_true", help="不等待回车，直接开抓")
+    sp.add_argument("--from-raw", action="store_true",
+                    help="不连设备：用上次抓取的 data/raw_screens 重新解析词表")
     sp.set_defaults(func=cmd_capture)
 
     sp = sub.add_parser("run", help="监听练习页，只跑一个模块（朗读 / 拼写）")

@@ -113,11 +113,12 @@ def read_slots(d):
     return None
 
 
-def type_word(d, word, clear_first=False):
+def type_word(d, word, clear_first=False, keep_punct=False):
     """按字母逐个点，把单词敲进去。有打不出的字符返回 False。
 
     clear_first=True 时先点一次「清空」（只取一次键盘位置，省一次查找）。
     词组里的空格直接忽略（"dig up" 就敲 digup，实测这样没问题）。
+    keep_punct=True 时撇号/连字符也照着点（当页面把它们算进字母格时）。
     """
     rect = _keyboard_rect(d)
     if rect is None:
@@ -128,6 +129,10 @@ def type_word(d, word, clear_first=False):
     said_space = False
     for ch in str(word).lower():
         if ch.isalpha() and ch in _KEYS:
+            if not _tap(d, rect, ch):
+                print(f"[键盘] 打不出字符 {ch!r}")
+                return False
+        elif keep_punct and ch in ("'", "-") and ch in _KEYS:
             if not _tap(d, rect, ch):
                 print(f"[键盘] 打不出字符 {ch!r}")
                 return False

@@ -56,8 +56,13 @@ def _score_cn(q, t, t_toks):
     if q in t or t in q:
         short, long_ = sorted((q, t), key=len)
         return 0.90 + 0.10 * len(short) / len(long_)
+    shared = set(q) & set(t)
     # 连一个共同汉字都没有 → 不用算了
-    if not (set(q) & set(t)):
+    if not shared:
+        return 0.0
+    # 只沾一个虚字（如「的」）不算证据：partial_ratio 对短文本很宽松，
+    # 会把无关释义推到 0.4+，在拼写页造成"匹配到别的词"。
+    if len(shared) < 2:
         return 0.0
     qs = cn_tokens(q)
     tok = len(qs & t_toks) / len(qs | t_toks) if (qs and t_toks) else 0.0
