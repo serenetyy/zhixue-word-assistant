@@ -30,10 +30,20 @@ MODELS = [
     ("en_US-hfc_female-medium",  "美音女声，自然"),
     ("en_US-lessac-medium",      "美音女声，偏中性"),
     ("en_US-kristin-medium",     "美音女声"),
+    ("en_US-ljspeech-high",      "美音女声，清晰标准（高质量）"),
+    ("en_US-lessac-high",        "美音女声，高质量（较大）"),
     ("en_GB-jenny_dioco-medium", "英音女声"),
     ("en_GB-alba-medium",        "英音（苏格兰）女声"),
-    ("en_US-lessac-high",        "美音女声，高质量（较大）"),
+    ("en_GB-southern_english_female-low",
+                                 "英音女声，低质量（发音更清楚、更慢）"),
+    ("en_US-ryan-medium",        "美音男声"),
     ("en_US-ryan-high",          "美音男声，高质量（较大）"),
+    ("en_US-hfc_male-medium",    "美音男声，自然"),
+    ("en_US-bryce-medium",       "美音男声"),
+    ("en_US-kathleen-low",       "美音女声，低质量（更清楚的机器音）"),
+    ("en_US-l2arctic-medium",    "非母语(L2)口音合集，没那么地道，可能更容易过评测"),
+    ("en_US-arctic-medium",      "美音，多说话人（默认第 0 个）"),
+    ("en_US-libritts_r-medium",  "美音，多说话人（默认第 0 个）"),
 ]
 
 
